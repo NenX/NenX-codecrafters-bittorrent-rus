@@ -30,6 +30,7 @@ fn main() {
         // Uncomment this block to pass the first stage
         let file_name = &args[2];
         let a = std::fs::read(file_name).unwrap();
+        println!("aaa => {:?}",a);
         let mut buf = MyBEncodedBuf {
             pos: 0,
             inner_buf: a,
@@ -49,16 +50,16 @@ fn main() {
         let _ = buf.encode(&info_v);
 
         let a = serde_bencode::to_bytes(&info).unwrap();
-        let a = Sha1::digest(&a);
+        let a = Sha1::digest(a);
         let a = hex::encode(a);
 
         let _sh1_digest = Sha1::digest(&buf.outer_buf);
         let hx = hex::encode(_sh1_digest);
 
-        // println!(" gg {:?} {:?}", hx, a);
+        println!(" gg {:?} {:?}", hx, a);
 
-        // println!("Tracker URL: {}", announce);
-        // println!("Length: {}", length);
+        println!("Tracker URL: {}", announce);
+        println!("Length: {}", length);
         println!("Info Hash: {}", hx);
     } else {
         println!("unknown command: {}", args[1])
