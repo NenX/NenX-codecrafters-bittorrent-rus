@@ -68,8 +68,8 @@ impl MyBEncodedBuf {
         let bb = String::from_utf8_lossy(pair.1).to_string();
         let aa = String::from_utf8_lossy(pair.0).to_string();
         let n = aa
-            .parse::<usize>()
-            .expect(&format!("parse_integer [{}] [{}] {}", aa, bb,String::from_utf8_lossy(&self.string_buf)));
+            .parse::<i64>()
+            .expect(&format!("parse_integer [{}] [{}] [{}]", aa, bb,String::from_utf8_lossy(&self.string_buf)));
 
         self.step(pair.0.len() + 1)?;
 
