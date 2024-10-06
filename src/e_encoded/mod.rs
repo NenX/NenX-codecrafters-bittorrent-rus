@@ -54,7 +54,8 @@ impl MyBEncodedBuf {
     }
     pub fn parse_str(&mut self) -> MyBEncodedResult<Value> {
         let a = self.split_by(b':')?;
-        let n = String::from_utf8_lossy(a.0).to_string().parse::<usize>()?;
+        let aa = String::from_utf8_lossy(a.0).to_string();
+        let n = aa.parse::<usize>().expect(&format!("parse_str {}", aa));
         let s: Value = String::from_utf8_lossy(&a.1[1..n + 1]).to_string().into();
         self.step(1 + a.0.len() + n)?;
 
@@ -64,9 +65,10 @@ impl MyBEncodedBuf {
         self.step(1)?;
 
         let a = self.split_by(b'e')?;
-        let n = String::from_utf8_lossy(a.0).to_string().parse::<usize>()?;
+        let aa = String::from_utf8_lossy(a.0).to_string();
+        let n = aa.parse::<usize>().expect(&format!("parse_integer {}", aa));
 
-        self.step( a.0.len() + 1)?;
+        self.step(a.0.len() + 1)?;
 
         Ok(n.into())
     }
@@ -123,7 +125,11 @@ impl MyBEncodedBuf {
                 let value = self.parse_str()?;
                 Ok(value.as_str().unwrap().to_owned())
             }
-            _ => panic!("Unhandled entry  key encoded value: {:x} {}", self.pos,str::from_utf8(&[c]).unwrap_or("x")),
+            _ => panic!(
+                "Unhandled entry  key encoded value: {:x} {}",
+                self.pos,
+                str::from_utf8(&[c]).unwrap_or("x")
+            ),
         }
     }
     pub fn parse(&mut self) -> MyBEncodedResult<Value> {
