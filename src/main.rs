@@ -1,6 +1,5 @@
-use bittorrent_starter_rust::{MyBEncodedBuf, Torrent};
-use bytes::buf;
-use serde_json::{self, Number};
+use bittorrent_starter_rust::MyBEncodedBuf;
+use serde_json::{self};
 use std::{env, error::Error};
 
 #[allow(dead_code)]
@@ -34,8 +33,20 @@ fn main() -> Result<(), Box<dyn Error>> {
             string_buf: a,
         };
         let decoded_value = decode_bencoded_value(&mut buf);
-        let announce = decoded_value.as_object().unwrap().get("announce").unwrap().as_str().unwrap();
-        let info = decoded_value.as_object().unwrap().get("info").unwrap().as_object().unwrap();
+        let announce = decoded_value
+            .as_object()
+            .unwrap()
+            .get("announce")
+            .unwrap()
+            .as_str()
+            .unwrap();
+        let info = decoded_value
+            .as_object()
+            .unwrap()
+            .get("info")
+            .unwrap()
+            .as_object()
+            .unwrap();
         let length = info.get("length").unwrap().as_i64().unwrap();
         println!("Tracker URL: {:}", announce);
         println!("Length: {:#?}", length);
