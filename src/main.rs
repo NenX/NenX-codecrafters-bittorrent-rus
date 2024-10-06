@@ -9,7 +9,7 @@ fn decode_bencoded_value(encoded_value: &mut MyBEncodedBuf) -> serde_json::Value
 }
 
 // Usage: your_bittorrent.sh decode "<encoded_value>"
-fn main() -> Result<(), Box<dyn Error>> {
+fn main()  {
     let args: Vec<String> = env::args().collect();
     let command = &args[1];
     if command == "decode" {
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         // Uncomment this block to pass the first stage
         let file_name = &args[2];
-        let a = std::fs::read(file_name)?;
+        let a = std::fs::read(file_name).unwrap();
         let mut buf = MyBEncodedBuf {
             pos: 0,
             string_buf: a,
@@ -53,5 +53,4 @@ fn main() -> Result<(), Box<dyn Error>> {
     } else {
         println!("unknown command: {}", args[1])
     };
-    Ok(())
 }
