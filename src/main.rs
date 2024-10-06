@@ -49,9 +49,9 @@ fn main() {
         let _sh1_digest = Sha1::digest(&buf.outer_buf);
         let hx = hex::encode(_sh1_digest);
         let _ = buf.encode(&info_v);
-        println!("Tracker URL: {:}", announce);
-        println!("Length: {:?}", length);
-        println!("Info Hash: {:?}", hx);
+        println!("Tracker URL: {}", announce);
+        println!("Length: {}", length);
+        println!("Info Hash: {}", hx);
     } else {
         println!("unknown command: {}", args[1])
     };
