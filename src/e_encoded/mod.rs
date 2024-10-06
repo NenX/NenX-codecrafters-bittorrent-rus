@@ -64,11 +64,14 @@ impl MyBEncodedBuf {
     pub fn parse_integer(&mut self) -> MyBEncodedResult<Value> {
         self.step(1)?;
 
-        let a = self.split_by(b'e')?;
-        let aa = String::from_utf8_lossy(a.0).to_string();
-        let n = aa.parse::<usize>().expect(&format!("parse_integer {}", aa));
+        let pair = self.split_by(b'e')?;
+        let bb = String::from_utf8_lossy(pair.1).to_string();
+        let aa = String::from_utf8_lossy(pair.0).to_string();
+        let n = aa
+            .parse::<usize>()
+            .expect(&format!("parse_integer {} {}", aa, bb));
 
-        self.step(a.0.len() + 1)?;
+        self.step(pair.0.len() + 1)?;
 
         Ok(n.into())
     }
