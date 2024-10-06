@@ -79,6 +79,11 @@ impl MyBEncodedBuf {
                     v.push(value);
                     continue;
                 }
+                _ if c == 'l' => {
+                    let value = self.parse_list()?;
+                    v.push(value);
+                    continue;
+                }
                 _ if c.is_digit(10) => {
                     let value = self.parse_str()?;
                     v.push(value);
