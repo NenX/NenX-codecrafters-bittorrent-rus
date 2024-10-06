@@ -1,6 +1,6 @@
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 pub struct MyBEncodedBuf {
     pub pos: usize,
@@ -84,6 +84,11 @@ impl MyBEncodedBuf {
                     v.push(value);
                     continue;
                 }
+                _ if c == 'd' => {
+                    let value = self.parse_dict()?;
+                    v.push(value);
+                    continue;
+                }
                 _ if c.is_digit(10) => {
                     let value = self.parse_str()?;
                     v.push(value);
@@ -97,6 +102,53 @@ impl MyBEncodedBuf {
 
         Ok(v.into())
     }
+    pub fn parse_dict(&mut self) -> MyBEncodedResult<Value> {
+        self.step(1)?;
+        let mut v = Map::new();
+        while let Ok(c) = self.peek() {
+            match c {
+                'e' => {
+                    self.step(1)?;
+                    break;
+                }
+
+                _ => {
+                    let entry = self.parse_dict_entry()?;
+                    v.insert(entry.0, entry.1);
+                }
+            };
+        }
+
+        Ok(v.into())
+    }
+    pub fn parse_dict_entry(&mut self) -> MyBEncodedResult<(String, Value)> {
+        let key = self.parse_dict_entry_key()?;
+        let value = self.parse_dict_entry_value()?;
+        Ok((key, value))
+    }
+    pub fn parse_dict_entry_value(&mut self) -> MyBEncodedResult<Value> {
+        let c = self.peek()?;
+
+        match c {
+            _ if c == 'i' => self.parse_integer(),
+            _ if c == 'l' => self.parse_list(),
+            _ if c == 'd' => self.parse_dict(),
+            _ if c.is_digit(10) => self.parse_str(),
+            _ => {
+                panic!("Unhandled entry encoded value: {}", c)
+            }
+        }
+    }
+    pub fn parse_dict_entry_key(&mut self) -> MyBEncodedResult<String> {
+        let c = self.peek()?;
+        match c {
+            _ if c.is_digit(10) => {
+                let value = self.parse_str()?;
+                Ok(value.as_str().unwrap().to_owned())
+            }
+            _ => panic!("Unhandled entry encoded value: {}", c),
+        }
+    }
     pub fn parse(&mut self) -> MyBEncodedResult<Value> {
         let c = self.peek()?;
         let a = match c {
@@ -108,6 +160,10 @@ impl MyBEncodedBuf {
                 let n = self.parse_list()?;
                 n
             }
+            'd' => {
+                let n = self.parse_dict()?;
+                n
+            }
 
             _ if c.is_digit(10) => {
                 let n = self.parse_str()?;
@@ -115,7 +171,7 @@ impl MyBEncodedBuf {
             }
 
             _ => {
-                panic!("Unhandled encoded value: {}", self.string_buf)
+                panic!("Unhandled encoded value: {} {}", self.string_buf, c)
             }
         };
         Ok(a)

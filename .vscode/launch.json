@@ -9,7 +9,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/bittorrent-starter-rust",
-            "args": ["decode","lli760e5:grapeee"],
+            "args": ["decode","d3:foo3:bar5:hellod3:foo3:bar5:helloi52eee"],
             "stopAtEntry": false,
             "preLaunchTask": "rust: cargo build",
             "cwd": "${fileDirname}",
