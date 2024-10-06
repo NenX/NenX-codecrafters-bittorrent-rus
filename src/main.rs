@@ -46,9 +46,9 @@ fn main() {
         let info_v = decoded_value.as_object().unwrap().get("info").unwrap();
         let info = info_v.as_object().unwrap();
         let length = info.get("length").unwrap().as_i64().unwrap();
+        let _ = buf.encode(&info_v);
         let _sh1_digest = Sha1::digest(&buf.outer_buf);
         let hx = hex::encode(_sh1_digest);
-        let _ = buf.encode(&info_v);
         println!("Tracker URL: {}", announce);
         println!("Length: {}", length);
         println!("Info Hash: {}", hx);
@@ -68,12 +68,13 @@ fn tt() {
         inner_buf: buf.outer_buf.clone(),
     };
     let decoded_value2 = decode_bencoded_value(&mut buf2);
+    let a = serde_bencode::to_bytes(&decoded_value).unwrap();
 
     println!(
-        "{}   \n {:?}\n {:?}",
-        encoded_value,
-        decoded_value,
-        decoded_value2,
+        "{:?}   \n {:?}\n {:?}",
+        a,
+        buf.outer_buf,
+        buf2.outer_buf,
         // String::from_utf8(buf.outer_buf.clone()).unwrap()
     );
     assert_eq!(
