@@ -47,10 +47,18 @@ fn main() {
         let info = info_v.as_object().unwrap();
         let length = info.get("length").unwrap().as_i64().unwrap();
         let _ = buf.encode(&info_v);
+
+        let a = serde_bencode::to_bytes(&info).unwrap();
+        let a = Sha1::digest(&a);
+        let a = hex::encode(a);
+
         let _sh1_digest = Sha1::digest(&buf.outer_buf);
         let hx = hex::encode(_sh1_digest);
-        println!("Tracker URL: {}", announce);
-        println!("Length: {}", length);
+
+        // println!(" gg {:?} {:?}", hx, a);
+
+        // println!("Tracker URL: {}", announce);
+        // println!("Length: {}", length);
         println!("Info Hash: {}", hx);
     } else {
         println!("unknown command: {}", args[1])
