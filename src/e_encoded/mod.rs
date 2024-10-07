@@ -1,7 +1,10 @@
 use core::str;
-use std::{collections::HashMap, error::Error};
+use std::{collections::HashMap, error::Error, fmt::Display};
 
-use serde_json::{Map, Value};
+use clap::builder::Str;
+use serde_bencode::value::Value;
+use serde_json::Map;
+use sha1::digest::crypto_common::Key;
 
 pub struct MyBEncodedBuf {
     pub pos: usize,
@@ -57,16 +60,21 @@ impl MyBEncodedBuf {
         let a = self.split_by(b':')?;
         let aa = String::from_utf8_lossy(a.0).to_string();
         let n = aa.parse::<usize>().expect(&format!("parse_str {}", aa));
-        let s: Value = String::from_utf8_lossy(&a.1[1..n + 1]).to_string().into();
+        let s: Value = (a.1[1..n + 1].to_vec()).into();
         self.step(1 + a.0.len() + n)?;
 
         Ok(s)
     }
-    pub fn encode_str(&mut self, s: &str) -> MyBEncodedResult<()> {
-        let len = s.as_bytes().len().to_string();
+    pub fn encode_str(&mut self, s: &Vec<u8>) -> MyBEncodedResult<()> {
+        let len: String = s.len().to_string();
+        // println!(
+        //     "ee_str {:?} {:?}",
+        //     String::from_utf8(s.to_vec()),
+        //     len.as_bytes()
+        // );
         self.outer_buf.extend_from_slice(len.as_bytes());
         self.outer_buf.push(b':');
-        self.outer_buf.extend_from_slice(s.as_bytes());
+        self.outer_buf.extend_from_slice(s);
 
         Ok(())
     }
@@ -127,48 +135,77 @@ impl MyBEncodedBuf {
     }
     pub fn decode_dict(&mut self) -> MyBEncodedResult<Value> {
         self.step(1)?;
-        let mut v = Map::new();
+        let mut v = Vec::new();
+        let mut m = HashMap::new();
         while let Ok(c) = self.peek() {
             match c {
                 b'e' => {
                     self.step(1)?;
+                    m.insert(vec![b'*'], v.into());
                     break;
                 }
 
                 _ => {
                     let entry = self.decode_dict_entry()?;
-                    v.insert(entry.0, entry.1);
+                    // println!("decode_dict {}", String::from_utf8_lossy(&entry.0));
+                    let k: Value = entry.0.clone().into();
+                    v.push(k);
+                    m.insert(entry.0, entry.1);
                 }
             };
         }
 
-        Ok(v.into())
+        Ok(m.into())
     }
-    pub fn encode_dict(&mut self, s: &Map<String, Value>) -> MyBEncodedResult<()> {
+    pub fn encode_dict(&mut self, s: &HashMap<Vec<u8>, Value>) -> MyBEncodedResult<()> {
         self.outer_buf.push(b'd');
+        let mut keys = vec![];
+        if let Some(kes) = s.get(&vec![b'*']).cloned() {
+            if let Value::List(l) = kes {
+                l.iter().for_each(|k| {
+                    if let Value::Bytes(b) = k {
+                        keys.push(b.clone());
+                    }
+                });
+            }
+        }
+        if keys.len() > 0 {
+            keys.iter().for_each(|k| {
+                let v = s.get(k);
+                if let Some(value) = v {
+                    let _ = self.encode_str(k);
+                    let _ = self.encode(value);
+                    // println!("encode_dict {}", String::from_utf8_lossy(k));
+                }
+            });
+        } else {
+            s.iter().for_each(|item| {
+                let _ = self.encode_str(&item.0);
+                // println!("encode_dict {}", String::from_utf8_lossy(item.0));
+                let _ = self.encode(item.1);
+            });
+        }
 
-        s.iter().for_each(|item| {
-            let _ = self.encode_str(item.0);
-
-            let _ = self.encode(item.1);
-        });
         self.outer_buf.push(b'e');
-
         Ok(())
     }
-    pub fn decode_dict_entry(&mut self) -> MyBEncodedResult<(String, Value)> {
+    pub fn decode_dict_entry(&mut self) -> MyBEncodedResult<(Vec<u8>, Value)> {
         let key = self.decode_dict_entry_key()?;
         let value = self.decode()?;
         // println!("entry {:?}",(&key,&value));
         Ok((key, value))
     }
 
-    pub fn decode_dict_entry_key(&mut self) -> MyBEncodedResult<String> {
+    pub fn decode_dict_entry_key(&mut self) -> MyBEncodedResult<Vec<u8>> {
         let c = self.peek()?;
         match c {
             b'0'..=b'9' => {
                 let value = self.decode_str()?;
-                Ok(value.as_str().unwrap().to_owned())
+                match &value {
+                    Value::Bytes(vec) => Ok(vec.clone()),
+
+                    _ => Err("key".into()),
+                }
             }
             _ => panic!(
                 "Unhandled entry  key encoded value: {:x} {}",
@@ -206,13 +243,65 @@ impl MyBEncodedBuf {
     }
     pub fn encode(&mut self, value: &Value) -> MyBEncodedResult<()> {
         let a = match value {
-            Value::Number(number) => self.encode_integer(number.as_i64().unwrap()),
-            Value::String(s) => self.encode_str(s),
-            Value::Array(vec) => self.encode_list(&vec),
-            Value::Object(map) => self.encode_dict(&map),
-            _ => panic!("encode {}", value),
+            Value::Int(number) => self.encode_integer(*number),
+            Value::Bytes(s) => self.encode_str(s),
+            Value::List(vec) => self.encode_list(&vec),
+            Value::Dict(map) => self.encode_dict(&map),
         };
         a
+    }
+    pub fn display_value_impl(&self, value: &Value, level: usize) {
+        match value {
+            Value::Bytes(vec) => print!("'{}'", String::from_utf8_lossy(vec).to_string()),
+            Value::Int(i) => print!("{}", i),
+            Value::List(vec) => {
+                print!("List[");
+                vec.iter().for_each(|v| {
+                    self.display_value_impl(&v, level + 1);
+                    print!(",");
+                });
+                print!("]");
+            }
+            Value::Dict(hash_map) => {
+                print!("Dict{{\n");
+                hash_map.iter().for_each(|v| {
+                    print!("{}{}", "  ".repeat(level), String::from_utf8_lossy(v.0));
+                    print!(": ");
+                    self.display_value_impl(&v.1, level + 1);
+
+                    print!(",\n");
+                });
+                print!("{}}}", "  ".repeat(level - 1),);
+            }
+        }
+    }
+    pub fn value_as_bytes(&self, value: &Value) -> Option<Vec<u8>> {
+        match value {
+            Value::Bytes(vec) => Some(vec.clone()),
+            _ => None,
+        }
+    }
+    pub fn value_as_int(&self, value: &Value) -> Option<i64> {
+        match value {
+            Value::Int(vec) => Some(vec.clone()),
+            _ => None,
+        }
+    }
+    pub fn value_as_list(&self, value: &Value) -> Option<Vec<Value>> {
+        match value {
+            Value::List(vec) => Some(vec.clone()),
+            _ => None,
+        }
+    }
+    pub fn value_as_dict(&self, value: &Value) -> Option<HashMap<Vec<u8>, Value>> {
+        match value {
+            Value::Dict(vec) => Some(vec.clone()),
+            _ => None,
+        }
+    }
+    pub fn display_value(&self, value: &Value) {
+        self.display_value_impl(value, 1);
+        print!("\n");
     }
 }
 impl From<&str> for MyBEncodedBuf {
@@ -231,5 +320,47 @@ impl From<&String> for MyBEncodedBuf {
             inner_buf: value.as_bytes().to_vec(),
             outer_buf: vec![],
         }
+    }
+}
+impl From<Vec<u8>> for MyBEncodedBuf {
+    fn from(value: Vec<u8>) -> Self {
+        Self {
+            pos: 0,
+            inner_buf: value,
+            outer_buf: vec![],
+        }
+    }
+}
+impl From<&Vec<u8>> for MyBEncodedBuf {
+    fn from(value: &Vec<u8>) -> Self {
+        Self {
+            pos: 0,
+            inner_buf: value.clone(),
+            outer_buf: vec![],
+        }
+    }
+}
+
+#[test]
+fn tt() {
+    let s: Vec<u8> = vec![
+        0x70, 0x69, 0x65, 0x63, 0x65, 0x20, 0x6c, 0x65, 0x6e, 0x67, 0x74, 0x68,
+    ];
+    let len = s.len().to_string();
+    println!("{:x?}", len.as_bytes());
+    println!("{:x?}", s);
+}
+#[test]
+fn aa() {
+    let mut m = HashMap::new();
+
+    m.insert("b", 1);
+    m.insert("a", 1);
+    m.insert("c", 1);
+    m.insert("d", 1);
+
+    m.iter().for_each(|i| println!("ii {}\n", i.0));
+    for i in m {
+        println!("ii {}", i.0)
     }
 }
