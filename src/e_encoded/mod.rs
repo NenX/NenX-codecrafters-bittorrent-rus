@@ -273,30 +273,36 @@ impl MyBEncodedBuf {
             }
             Value::Dict(hash_map) => {
                 print!("{{");
-
+                let mut len = hash_map.len();
                 let keys = self.get_sorted_dict_keys(hash_map);
                 if keys.len() > 0 {
                     keys.iter().for_each(|k| {
                         if let Some(v) = hash_map.get(k) {
+                            len -= 1;
+
                             self.display_value_impl(&Value::Bytes(k.to_vec()));
                             print!(":");
                             self.display_value_impl(v);
 
-                            print!(",");
+                            if len > 1 {
+                                print!(",");
+                            }
                         }
                     });
                 } else {
                     hash_map.iter().for_each(|v| {
+                        len -= 1;
                         let k = v.0;
                         if k.contains(&b'*') {
                             return;
                         }
                         self.display_value_impl(&Value::Bytes(k.to_vec()));
 
-                        print!(": ");
+                        print!(":");
                         self.display_value_impl(&v.1);
-
-                        print!(",\n");
+                        if len > 0 {
+                            print!(",");
+                        }
                     });
                 }
 
