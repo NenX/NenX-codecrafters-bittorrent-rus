@@ -264,10 +264,14 @@ impl MyBEncodedBuf {
             Value::Bytes(vec) => print!(r#""{}""#, String::from_utf8_lossy(vec).to_string()),
             Value::Int(i) => print!("{}", i),
             Value::List(vec) => {
+                let mut len = vec.len();
                 print!("[");
                 vec.iter().for_each(|v| {
+                    len -= 1;
                     self.display_value_impl(&v);
-                    print!(",");
+                    if len > 0 {
+                        print!(",");
+                    }
                 });
                 print!("]");
             }
