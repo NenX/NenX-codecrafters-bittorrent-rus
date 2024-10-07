@@ -6,12 +6,13 @@ use serde_bencode::value::Value;
 use serde_json::Map;
 use sha1::digest::crypto_common::Key;
 
+use crate::{get_sorted_dict_keys, MyTorrentResult};
+
 pub struct MyBEncodedBuf {
     pub pos: usize,
     pub inner_buf: Vec<u8>,
     pub outer_buf: Vec<u8>,
 }
-type MyBEncodedResult<T> = Result<T, Box<dyn Error>>;
 impl MyBEncodedBuf {
     pub fn get_current_slice(&self) -> &[u8] {
         let a = &self.inner_buf[self.pos..];
@@ -20,13 +21,13 @@ impl MyBEncodedBuf {
     pub fn len_bound(&self) -> usize {
         self.inner_buf.len()
     }
-    pub fn read(&mut self) -> MyBEncodedResult<u8> {
+    pub fn read(&mut self) -> MyTorrentResult<u8> {
         let ret = self.peek()?;
         self.seek(self.pos + 1)?;
 
         Ok(ret)
     }
-    pub fn peek(&self) -> MyBEncodedResult<u8> {
+    pub fn peek(&self) -> MyTorrentResult<u8> {
         if self.pos > self.len_bound() {
             return Err("read".into());
         }
@@ -35,14 +36,14 @@ impl MyBEncodedBuf {
 
         Ok(ret)
     }
-    pub fn seek(&mut self, p: usize) -> MyBEncodedResult<()> {
+    pub fn seek(&mut self, p: usize) -> MyTorrentResult<()> {
         if p > self.len_bound() {
             return Err("seek".into());
         }
         self.pos = p;
         Ok(())
     }
-    pub fn step(&mut self, steps: usize) -> MyBEncodedResult<()> {
+    pub fn step(&mut self, steps: usize) -> MyTorrentResult<()> {
         let target = self.pos + steps;
         if target > self.len_bound() {
             return Err(format!("pos {} step {}", self.pos, steps).into());
@@ -50,13 +51,13 @@ impl MyBEncodedBuf {
         self.pos = target;
         Ok(())
     }
-    pub fn split_by(&self, value: u8) -> MyBEncodedResult<(&[u8], &[u8])> {
+    pub fn split_by(&self, value: u8) -> MyTorrentResult<(&[u8], &[u8])> {
         let data = self.get_current_slice();
         let idx = data.iter().position(|a| *a == value).ok_or("position")?;
         let a = data.split_at(idx);
         Ok(a)
     }
-    pub fn decode_str(&mut self) -> MyBEncodedResult<Value> {
+    pub fn decode_str(&mut self) -> MyTorrentResult<Value> {
         let a = self.split_by(b':')?;
         let aa = String::from_utf8_lossy(a.0).to_string();
         let n = aa.parse::<usize>().expect(&format!("parse_str {}", aa));
@@ -65,7 +66,7 @@ impl MyBEncodedBuf {
 
         Ok(s)
     }
-    pub fn encode_str(&mut self, s: &Vec<u8>) -> MyBEncodedResult<()> {
+    pub fn encode_str(&mut self, s: &Vec<u8>) -> MyTorrentResult<()> {
         let len: String = s.len().to_string();
         // println!(
         //     "ee_str {:?} {:?}",
@@ -78,7 +79,7 @@ impl MyBEncodedBuf {
 
         Ok(())
     }
-    pub fn decode_integer(&mut self) -> MyBEncodedResult<Value> {
+    pub fn decode_integer(&mut self) -> MyTorrentResult<Value> {
         self.step(1)?;
 
         let pair = self.split_by(b'e')?;
@@ -95,7 +96,7 @@ impl MyBEncodedBuf {
 
         Ok(n.into())
     }
-    pub fn encode_integer(&mut self, s: i64) -> MyBEncodedResult<()> {
+    pub fn encode_integer(&mut self, s: i64) -> MyTorrentResult<()> {
         self.outer_buf.push(b'i');
 
         self.outer_buf.extend_from_slice(s.to_string().as_bytes());
@@ -103,7 +104,7 @@ impl MyBEncodedBuf {
 
         Ok(())
     }
-    pub fn decode_list(&mut self) -> MyBEncodedResult<Value> {
+    pub fn decode_list(&mut self) -> MyTorrentResult<Value> {
         self.step(1)?;
         let mut v = vec![];
         while let Ok(c) = self.peek() {
@@ -123,7 +124,7 @@ impl MyBEncodedBuf {
 
         Ok(v.into())
     }
-    pub fn encode_list(&mut self, s: &Vec<Value>) -> MyBEncodedResult<()> {
+    pub fn encode_list(&mut self, s: &Vec<Value>) -> MyTorrentResult<()> {
         self.outer_buf.push(b'l');
 
         s.iter().for_each(|item| {
@@ -133,7 +134,7 @@ impl MyBEncodedBuf {
 
         Ok(())
     }
-    pub fn decode_dict(&mut self) -> MyBEncodedResult<Value> {
+    pub fn decode_dict(&mut self) -> MyTorrentResult<Value> {
         self.step(1)?;
         let mut v = Vec::new();
         let mut m = HashMap::new();
@@ -157,23 +158,10 @@ impl MyBEncodedBuf {
 
         Ok(m.into())
     }
-    pub fn get_sorted_dict_keys(&self, s: &HashMap<Vec<u8>, Value>) -> Vec<Vec<u8>> {
-        let mut keys = vec![];
-        if let Some(kes) = s.get(&vec![b'*']).cloned() {
-            if let Value::List(l) = kes {
-                l.iter().for_each(|k| {
-                    if let Value::Bytes(b) = k {
-                        keys.push(b.clone());
-                    }
-                });
-            }
-        }
 
-        keys
-    }
-    pub fn encode_dict(&mut self, s: &HashMap<Vec<u8>, Value>) -> MyBEncodedResult<()> {
+    pub fn encode_dict(&mut self, s: &HashMap<Vec<u8>, Value>) -> MyTorrentResult<()> {
         self.outer_buf.push(b'd');
-        let keys = self.get_sorted_dict_keys(s);
+        let keys = get_sorted_dict_keys(s);
         if keys.len() > 0 {
             keys.iter().for_each(|k| {
                 let v = s.get(k);
@@ -198,14 +186,14 @@ impl MyBEncodedBuf {
         self.outer_buf.push(b'e');
         Ok(())
     }
-    pub fn decode_dict_entry(&mut self) -> MyBEncodedResult<(Vec<u8>, Value)> {
+    pub fn decode_dict_entry(&mut self) -> MyTorrentResult<(Vec<u8>, Value)> {
         let key = self.decode_dict_entry_key()?;
         let value = self.decode()?;
         // println!("entry {:?}",(&key,&value));
         Ok((key, value))
     }
 
-    pub fn decode_dict_entry_key(&mut self) -> MyBEncodedResult<Vec<u8>> {
+    pub fn decode_dict_entry_key(&mut self) -> MyTorrentResult<Vec<u8>> {
         let c = self.peek()?;
         match c {
             b'0'..=b'9' => {
@@ -223,7 +211,7 @@ impl MyBEncodedBuf {
             ),
         }
     }
-    pub fn decode(&mut self) -> MyBEncodedResult<Value> {
+    pub fn decode(&mut self) -> MyTorrentResult<Value> {
         let c = self.peek()?;
         let a = match c {
             b'i' => {
@@ -250,7 +238,7 @@ impl MyBEncodedBuf {
         };
         Ok(a)
     }
-    pub fn encode(&mut self, value: &Value) -> MyBEncodedResult<()> {
+    pub fn encode(&mut self, value: &Value) -> MyTorrentResult<()> {
         let a = match value {
             Value::Int(number) => self.encode_integer(*number),
             Value::Bytes(s) => self.encode_str(s),
@@ -259,89 +247,8 @@ impl MyBEncodedBuf {
         };
         a
     }
-    pub fn display_value_impl(&self, value: &Value) {
-        match value {
-            Value::Bytes(vec) => print!(r#""{}""#, String::from_utf8_lossy(vec).to_string()),
-            Value::Int(i) => print!("{}", i),
-            Value::List(vec) => {
-                let mut len = vec.len();
-                print!("[");
-                vec.iter().for_each(|v| {
-                    len -= 1;
-                    self.display_value_impl(&v);
-                    if len > 0 {
-                        print!(",");
-                    }
-                });
-                print!("]");
-            }
-            Value::Dict(hash_map) => {
-                print!("{{");
-                let mut len = hash_map.len();
-                let keys = self.get_sorted_dict_keys(hash_map);
-                if keys.len() > 0 {
-                    keys.iter().for_each(|k| {
-                        if let Some(v) = hash_map.get(k) {
-                            len -= 1;
 
-                            self.display_value_impl(&Value::Bytes(k.to_vec()));
-                            print!(":");
-                            self.display_value_impl(v);
 
-                            if len > 1 {
-                                print!(",");
-                            }
-                        }
-                    });
-                } else {
-                    hash_map.iter().for_each(|v| {
-                        len -= 1;
-                        let k = v.0;
-                        if k.contains(&b'*') {
-                            return;
-                        }
-                        self.display_value_impl(&Value::Bytes(k.to_vec()));
-
-                        print!(":");
-                        self.display_value_impl(&v.1);
-                        if len > 0 {
-                            print!(",");
-                        }
-                    });
-                }
-
-                print!("}}");
-            }
-        }
-    }
-    pub fn value_as_bytes(&self, value: &Value) -> Option<Vec<u8>> {
-        match value {
-            Value::Bytes(vec) => Some(vec.clone()),
-            _ => None,
-        }
-    }
-    pub fn value_as_int(&self, value: &Value) -> Option<i64> {
-        match value {
-            Value::Int(vec) => Some(vec.clone()),
-            _ => None,
-        }
-    }
-    pub fn value_as_list(&self, value: &Value) -> Option<Vec<Value>> {
-        match value {
-            Value::List(vec) => Some(vec.clone()),
-            _ => None,
-        }
-    }
-    pub fn value_as_dict(&self, value: &Value) -> Option<HashMap<Vec<u8>, Value>> {
-        match value {
-            Value::Dict(vec) => Some(vec.clone()),
-            _ => None,
-        }
-    }
-    pub fn display_value(&self, value: &Value) {
-        self.display_value_impl(value);
-        print!("\n");
-    }
 }
 impl From<&str> for MyBEncodedBuf {
     fn from(value: &str) -> Self {
