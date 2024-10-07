@@ -157,8 +157,7 @@ impl MyBEncodedBuf {
 
         Ok(m.into())
     }
-    pub fn encode_dict(&mut self, s: &HashMap<Vec<u8>, Value>) -> MyBEncodedResult<()> {
-        self.outer_buf.push(b'd');
+    pub fn get_sorted_dict_keys(&self, s: &HashMap<Vec<u8>, Value>) -> Vec<Vec<u8>> {
         let mut keys = vec![];
         if let Some(kes) = s.get(&vec![b'*']).cloned() {
             if let Value::List(l) = kes {
@@ -169,6 +168,12 @@ impl MyBEncodedBuf {
                 });
             }
         }
+
+        keys
+    }
+    pub fn encode_dict(&mut self, s: &HashMap<Vec<u8>, Value>) -> MyBEncodedResult<()> {
+        self.outer_buf.push(b'd');
+        let keys = self.get_sorted_dict_keys(s);
         if keys.len() > 0 {
             keys.iter().for_each(|k| {
                 let v = s.get(k);
@@ -180,6 +185,10 @@ impl MyBEncodedBuf {
             });
         } else {
             s.iter().for_each(|item| {
+                let k = item.0;
+                if k.contains(&b'*') {
+                    return;
+                }
                 let _ = self.encode_str(&item.0);
                 // println!("encode_dict {}", String::from_utf8_lossy(item.0));
                 let _ = self.encode(item.1);
@@ -264,13 +273,32 @@ impl MyBEncodedBuf {
             }
             Value::Dict(hash_map) => {
                 print!("Dict{{\n");
-                hash_map.iter().for_each(|v| {
-                    print!("{}{}", "  ".repeat(level), String::from_utf8_lossy(v.0));
-                    print!(": ");
-                    self.display_value_impl(&v.1, level + 1);
 
-                    print!(",\n");
-                });
+                let keys = self.get_sorted_dict_keys(hash_map);
+                if keys.len() > 0 {
+                    keys.iter().for_each(|k| {
+                        if let Some(v) = hash_map.get(k) {
+                            print!("{}{}", "  ".repeat(level), String::from_utf8_lossy(k));
+                            print!(": ");
+                            self.display_value_impl(v, level + 1);
+
+                            print!(",\n");
+                        }
+                    });
+                } else {
+                    hash_map.iter().for_each(|v| {
+                        let k = v.0;
+                        if k.contains(&b'*') {
+                            return;
+                        }
+                        print!("{}{}", "  ".repeat(level), String::from_utf8_lossy(k));
+                        print!(": ");
+                        self.display_value_impl(&v.1, level + 1);
+
+                        print!(",\n");
+                    });
+                }
+
                 print!("{}}}", "  ".repeat(level - 1),);
             }
         }

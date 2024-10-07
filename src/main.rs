@@ -24,7 +24,7 @@ fn main() {
         let mut buf = MyBEncodedBuf::from(encoded_value);
         let decoded_value = decode_bencoded_value(&mut buf);
         let _ = buf.encode(&decoded_value);
-        // buf.display_value(&decoded_value);
+        buf.display_value(&decoded_value);
     } else if command == "info" {
         // You can use print statements as follows for debugging, they'll be visible when running tests.
         // println!("Logs from your program will appear here!");
