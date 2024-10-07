@@ -264,7 +264,7 @@ impl MyBEncodedBuf {
             Value::Bytes(vec) => print!("'{}'", String::from_utf8_lossy(vec).to_string()),
             Value::Int(i) => print!("{}", i),
             Value::List(vec) => {
-                print!("List[");
+                print!("[");
                 vec.iter().for_each(|v| {
                     self.display_value_impl(&v, level + 1);
                     print!(",");
@@ -272,13 +272,13 @@ impl MyBEncodedBuf {
                 print!("]");
             }
             Value::Dict(hash_map) => {
-                print!("Dict{{\n");
+                print!("{{");
 
                 let keys = self.get_sorted_dict_keys(hash_map);
                 if keys.len() > 0 {
                     keys.iter().for_each(|k| {
                         if let Some(v) = hash_map.get(k) {
-                            print!("{}{}", "  ".repeat(level), String::from_utf8_lossy(k));
+                            print!("{}", String::from_utf8_lossy(k));
                             print!(": ");
                             self.display_value_impl(v, level + 1);
 
@@ -291,7 +291,7 @@ impl MyBEncodedBuf {
                         if k.contains(&b'*') {
                             return;
                         }
-                        print!("{}{}", "  ".repeat(level), String::from_utf8_lossy(k));
+                        print!("{}", String::from_utf8_lossy(k));
                         print!(": ");
                         self.display_value_impl(&v.1, level + 1);
 
