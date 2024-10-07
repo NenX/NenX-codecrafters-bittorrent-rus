@@ -259,14 +259,14 @@ impl MyBEncodedBuf {
         };
         a
     }
-    pub fn display_value_impl(&self, value: &Value, level: usize) {
+    pub fn display_value_impl(&self, value: &Value) {
         match value {
-            Value::Bytes(vec) => print!("'{}'", String::from_utf8_lossy(vec).to_string()),
+            Value::Bytes(vec) => print!(r#""{}""#, String::from_utf8_lossy(vec).to_string()),
             Value::Int(i) => print!("{}", i),
             Value::List(vec) => {
                 print!("[");
                 vec.iter().for_each(|v| {
-                    self.display_value_impl(&v, level + 1);
+                    self.display_value_impl(&v);
                     print!(",");
                 });
                 print!("]");
@@ -278,11 +278,11 @@ impl MyBEncodedBuf {
                 if keys.len() > 0 {
                     keys.iter().for_each(|k| {
                         if let Some(v) = hash_map.get(k) {
-                            print!("{}", String::from_utf8_lossy(k));
-                            print!(": ");
-                            self.display_value_impl(v, level + 1);
+                            self.display_value_impl(&Value::Bytes(k.to_vec()));
+                            print!(":");
+                            self.display_value_impl(v);
 
-                            print!(",\n");
+                            print!(",");
                         }
                     });
                 } else {
@@ -291,15 +291,16 @@ impl MyBEncodedBuf {
                         if k.contains(&b'*') {
                             return;
                         }
-                        print!("{}", String::from_utf8_lossy(k));
+                        self.display_value_impl(&Value::Bytes(k.to_vec()));
+
                         print!(": ");
-                        self.display_value_impl(&v.1, level + 1);
+                        self.display_value_impl(&v.1);
 
                         print!(",\n");
                     });
                 }
 
-                print!("{}}}", "  ".repeat(level - 1),);
+                print!("}}");
             }
         }
     }
@@ -328,7 +329,7 @@ impl MyBEncodedBuf {
         }
     }
     pub fn display_value(&self, value: &Value) {
-        self.display_value_impl(value, 1);
+        self.display_value_impl(value);
         print!("\n");
     }
 }
