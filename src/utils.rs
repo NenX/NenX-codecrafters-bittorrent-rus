@@ -113,3 +113,15 @@ pub fn dict_get(m: &Value, k: &str) -> MyTorrentResult<Value> {
         .ok_or("value_as_dict get")?;
     Ok(announce_value.clone())
 }
+pub fn pieces_hash(v: &Value) -> MyTorrentResult<Vec<String>> {
+    let pieces = dict_get_as(v, "pieces", |v| value_as_bytes(v))?;
+    let a: Vec<_> = pieces
+        .chunks(20)
+        .map(|c| {
+            let s: String = hex::encode(c);
+            return s;
+        })
+        .collect();
+
+    Ok(a)
+}

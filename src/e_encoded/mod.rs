@@ -14,6 +14,13 @@ pub struct MyBEncodedBuf {
     pub outer_buf: Vec<u8>,
 }
 impl MyBEncodedBuf {
+    pub fn new() -> Self {
+        Self {
+            pos: 0,
+            inner_buf: vec![],
+            outer_buf: vec![],
+        }
+    }
     pub fn get_current_slice(&self) -> &[u8] {
         let a = &self.inner_buf[self.pos..];
         a
@@ -247,8 +254,6 @@ impl MyBEncodedBuf {
         };
         a
     }
-
-
 }
 impl From<&str> for MyBEncodedBuf {
     fn from(value: &str) -> Self {
