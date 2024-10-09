@@ -8,8 +8,8 @@ use sha1::{Digest, Sha1};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct MyTorrent {
     pub announce: String,
-    #[serde(rename = "created by")]
-    pub create_by: String,
+    // #[serde(rename = "created by")]
+    // pub create_by: String,
     pub info: MyTorrentInfo,
 }
 
