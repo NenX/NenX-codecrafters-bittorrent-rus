@@ -1,8 +1,10 @@
+mod handshake_task;
 mod info_task;
 mod peers_task;
 
-use info_task::info;
-use peers_task::peers;
+use handshake_task::handshake_task;
+use info_task::info_task;
+use peers_task::peers_task;
 use serde_bencode::value::Value;
 use std::env;
 
@@ -23,9 +25,11 @@ pub async fn torrent_task() -> anyhow::Result<()> {
         let _ = buf.encode(&decoded_value);
         display_value(&decoded_value);
     } else if command == "info" {
-        let _ = info(&args[2]);
+        let _ = info_task(&args[2]);
     } else if command == "peers" {
-        let _ = peers(&args[2]).await;
+        let _ = peers_task(&args[2]).await;
+    } else if command == "handshake" {
+        let _ = handshake_task(&args[2], &args[3]).await;
     } else {
         println!("unknown command: {}", args[1])
     };

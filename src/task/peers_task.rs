@@ -2,11 +2,11 @@ use anyhow::Context;
 use serde_bencode::value::Value;
 
 use crate::{
-    my_impl::{MyTorrent, MyTorrentInfoKeys, MyTrackerRequest, MyTrackerResponse},
+    my_impl::{MyTorrent, MyTorrentInfoKeys, MyTrackerPeers, MyTrackerRequest, MyTrackerResponse},
     torrent, MyBEncodedBuf, MyTorrentResult, Torrent, TrackerRequest, TrackerResponse,
 };
 
-pub async fn peers(torrent: &str) -> MyTorrentResult<()> {
+pub async fn peers_task(torrent: &str) -> MyTorrentResult<MyTrackerPeers> {
     let b = MyTorrent::from_file(torrent);
     let len = if let MyTorrentInfoKeys::SingleFile { length } = b.info.keys {
         length
@@ -35,5 +35,5 @@ pub async fn peers(torrent: &str) -> MyTorrentResult<()> {
     let res: MyTrackerResponse = serde_bencode::from_bytes(&res_bytes)?;
     res.peers.print();
 
-    Ok(())
+    Ok(res.peers)
 }

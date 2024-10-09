@@ -5,7 +5,7 @@ use serde::{de::Visitor, Deserialize, Serialize};
 use serde_bytes::serialize;
 use sha1::{Digest, Sha1};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MyTorrent {
     pub announce: String,
     // #[serde(rename = "created by")]
@@ -13,7 +13,7 @@ pub struct MyTorrent {
     pub info: MyTorrentInfo,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MyTorrentInfo {
     pub name: String,
     #[serde(flatten)]
@@ -53,7 +53,7 @@ impl MyTorrentInfo {
         s
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct MyTorrentPieces(pub Vec<[u8; 20]>);
 impl MyTorrentPieces {
     pub fn print(&self) {
@@ -105,13 +105,13 @@ impl MyTorrent {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum MyTorrentInfoKeys {
     SingleFile { length: usize },
     MultiFile { files: Vec<MyTorrentInfoFiles> },
 }
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MyTorrentInfoFiles {
     pub length: usize,
     pub path: Vec<String>,
