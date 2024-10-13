@@ -110,7 +110,7 @@ impl MyRequestPayload {
         a
     }
     pub fn ref_from_bytes(data: &[u8]) -> Option<&Self> {
-        if data.len() < size_of::<Self>() {
+        if data.len() < std::mem::size_of::<Self>() {
             return None;
         }
         let a = data as *const [u8] as *const Self;
@@ -132,7 +132,7 @@ impl MyPiecePayload {
         let v: Vec<_> = a.iter().chain(self.block.iter()).cloned().collect();
         v
     }
-    const PIECE_SIZE: usize = size_of::<MyPiecePayload<()>>();
+    const PIECE_SIZE: usize = std::mem::size_of::<MyPiecePayload<()>>();
     pub fn ref_from_bytes(data: &[u8]) -> Option<&Self> {
         dbg!(data.len());
         dbg!(Self::PIECE_SIZE);
