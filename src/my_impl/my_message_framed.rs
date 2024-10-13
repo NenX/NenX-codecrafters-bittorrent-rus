@@ -20,13 +20,12 @@ impl Decoder for MyPeerMsgFramed {
     type Item = MyPeerMsg;
     type Error = std::io::Error;
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
-
         let total_len = src.len();
 
         if total_len < LEN_BYTE {
             return Ok(None);
         }
-        println!("decode : {:?} ", src,);
+        println!("decode --> : {:?} ", src,);
 
         let len_slice = src[..4].try_into().context("bytes to len").unwrap();
         let len = u32::from_be_bytes(len_slice) as usize;
@@ -53,8 +52,10 @@ impl Decoder for MyPeerMsgFramed {
         } else {
             src[LEN_BYTE + 1..LEN_BYTE + len].to_vec()
         };
+        let msg = MyPeerMsg { payload, tag };
+        println!("{:?} <--decode  ", msg,);
 
-        Ok(Some(MyPeerMsg { payload, tag }))
+        Ok(Some(msg))
     }
 }
 impl Encoder<MyPeerMsg> for MyPeerMsgFramed {
