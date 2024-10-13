@@ -26,7 +26,7 @@ impl Decoder for MyPeerMsgFramed {
         if total_len < LEN_BYTE {
             return Ok(None);
         }
-        println!("encode : {:?} ", src,);
+        println!("decode : {:?} ", src,);
 
         let len_slice = src[..4].try_into().context("bytes to len").unwrap();
         let len = u32::from_be_bytes(len_slice) as usize;
