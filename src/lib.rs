@@ -1,12 +1,13 @@
-pub mod my_impl;
+pub mod commands;
 mod e_encoded;
-mod tracker;
-mod torrent;
-mod utils;
+pub mod my_impl;
 mod task;
+mod torrent;
+mod tracker;
+mod utils;
 
 pub use e_encoded::*;
-pub use torrent::*;
-pub use utils::*;
 pub use task::*;
+pub use torrent::*;
 pub use tracker::*;
+pub use utils::*;

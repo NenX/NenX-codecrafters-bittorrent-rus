@@ -1,12 +1,13 @@
+use std::path::Path;
+
 use anyhow::Context;
-use serde_bencode::value::Value;
 
 use crate::{
     my_impl::{MyTorrent, MyTorrentInfoKeys, MyTrackerPeers, MyTrackerRequest, MyTrackerResponse},
-    torrent, MyBEncodedBuf, MyTorrentResult, Torrent, TrackerRequest, TrackerResponse,
+    MyTorrentResult,
 };
 
-pub async fn peers_task(torrent: &str) -> MyTorrentResult<MyTrackerPeers> {
+pub async fn peers_task<T: AsRef<Path>>(torrent: T) -> MyTorrentResult<MyTrackerPeers> {
     let b = MyTorrent::from_file(torrent);
     let len = if let MyTorrentInfoKeys::SingleFile { length } = b.info.keys {
         length
@@ -31,6 +32,7 @@ pub async fn peers_task(torrent: &str) -> MyTorrentResult<MyTrackerPeers> {
         b.info.urlencode(),
         request_params
     );
+    println!("request_params {}", request_params);
     let res_bytes = reqwest::get(request_params).await?.bytes().await?;
     let res: MyTrackerResponse = serde_bencode::from_bytes(&res_bytes)?;
     res.peers.print();

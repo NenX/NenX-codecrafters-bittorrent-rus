@@ -1,9 +1,12 @@
-use std::fs;
+use std::{fs, path::Path};
 
 use anyhow::Context;
 use serde::{de::Visitor, Deserialize, Serialize};
 use serde_bytes::serialize;
 use sha1::{Digest, Sha1};
+
+
+use super::{MyPeerMsg, MyRequestPayload};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MyTorrent {
@@ -99,10 +102,17 @@ impl<'de> Deserialize<'de> for MyTorrentPieces {
     }
 }
 impl MyTorrent {
-    pub fn from_file(file: &str) -> Self {
+    pub fn from_file<T: AsRef<Path>>(file: T) -> Self {
         let b = fs::read(file).expect("read file");
         serde_bencode::from_bytes(&b).context("context").expect("?")
     }
+    pub fn single_length(&self) -> Option<usize> {
+        match &self.info.keys {
+            MyTorrentInfoKeys::SingleFile { length } => Some(*length),
+            MyTorrentInfoKeys::MultiFile { files } => None,
+        }
+    }
+ 
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

@@ -1,13 +1,11 @@
-use anyhow::Context;
-use serde_bencode::value::Value;
+use std::path::Path;
 
-use crate::{
-    my_impl::{MyConnect, MyTorrent, MyTorrentInfoKeys, MyTrackerRequest, MyTrackerResponse},
-    torrent, MyBEncodedBuf, MyTorrentResult, Torrent, TrackerRequest, TrackerResponse,
-};
 
-pub async fn handshake_task(torrent: &str, peer: &str) -> MyTorrentResult<()> {
+
+use crate::{my_impl::MyConnect, MyTorrentResult};
+
+pub async fn handshake_task<T: AsRef<Path>>(torrent: T, peer: &str) -> MyTorrentResult<MyConnect> {
     let _ins = MyConnect::handshake(torrent, peer).await;
 
-    Ok(())
+    Ok(_ins)
 }

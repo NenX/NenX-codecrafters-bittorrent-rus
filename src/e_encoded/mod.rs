@@ -6,7 +6,7 @@ use serde_bencode::value::Value;
 use serde_json::Map;
 use sha1::digest::crypto_common::Key;
 
-use crate::{get_sorted_dict_keys, MyTorrentResult};
+use crate::{e_msg, get_sorted_dict_keys, MyTorrentResult};
 
 pub struct MyBEncodedBuf {
     pub pos: usize,
@@ -36,16 +36,16 @@ impl MyBEncodedBuf {
     }
     pub fn peek(&self) -> MyTorrentResult<u8> {
         if self.pos > self.len_bound() {
-            return Err("read".into());
+            return e_msg!(;"peek");
         }
         let chars = self.inner_buf.get(self.pos).cloned();
-        let ret = chars.ok_or("peek")?;
+        let ret = chars.ok_or(e_msg!("peek"))?;
 
         Ok(ret)
     }
     pub fn seek(&mut self, p: usize) -> MyTorrentResult<()> {
         if p > self.len_bound() {
-            return Err("seek".into());
+            return e_msg!(;"seek");
         }
         self.pos = p;
         Ok(())
@@ -53,14 +53,17 @@ impl MyBEncodedBuf {
     pub fn step(&mut self, steps: usize) -> MyTorrentResult<()> {
         let target = self.pos + steps;
         if target > self.len_bound() {
-            return Err(format!("pos {} step {}", self.pos, steps).into());
+            return e_msg!(;format!("pos {} step {}", self.pos, steps));
         }
         self.pos = target;
         Ok(())
     }
     pub fn split_by(&self, value: u8) -> MyTorrentResult<(&[u8], &[u8])> {
         let data = self.get_current_slice();
-        let idx = data.iter().position(|a| *a == value).ok_or("position")?;
+        let idx = data
+            .iter()
+            .position(|a| *a == value)
+            .ok_or(e_msg!("position"))?;
         let a = data.split_at(idx);
         Ok(a)
     }
@@ -208,7 +211,7 @@ impl MyBEncodedBuf {
                 match &value {
                     Value::Bytes(vec) => Ok(vec.clone()),
 
-                    _ => Err("key".into()),
+                    _ => Err(e_msg!("key")),
                 }
             }
             _ => panic!(

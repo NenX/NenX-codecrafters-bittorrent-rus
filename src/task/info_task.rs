@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use serde_bencode::value::Value;
 use sha1::{Digest, Sha1};
 
@@ -37,7 +39,7 @@ pub fn info_raw(file_name: &str) -> MyTorrentResult<()> {
     println!("Piece Hashes: \n{}", pieces_hash(&info_value)?.join("\n"));
     Ok(())
 }
-pub fn info_task(file_name: &str) -> MyTorrentResult<()> {
+pub fn info_task<T: AsRef<Path>>(file_name: T) -> MyTorrentResult<()> {
     // info_raw(file_name)?;
     let b = MyTorrent::from_file(file_name);
 

@@ -1,7 +1,20 @@
-use std::{collections::HashMap, error::Error};
+use std::{collections::HashMap, fmt::format};
 
+use anyhow::{Error, Result};
 use serde_bencode::value::Value;
-pub type MyTorrentResult<T> = Result<T, Box<dyn Error>>;
+use sha1::{Digest, Sha1};
+// pub type MyTorrentResult<T> = Result<T, Box<dyn Error>>;
+pub type MyTorrentResult<T> = Result<T>;
+#[macro_export]
+
+macro_rules! e_msg {
+    ($x:expr) => {
+        anyhow::Error::msg($x)
+    };
+    (;$x:expr) => {
+        Err(anyhow::Error::msg($x))
+    };
+}
 
 pub fn get_sorted_dict_keys(s: &HashMap<Vec<u8>, Value>) -> Vec<Vec<u8>> {
     let mut keys = vec![];
@@ -104,13 +117,13 @@ pub fn display_value(v: &Value) {
 
 pub fn dict_get_as<T>(m: &Value, k: &str, t: impl Fn(&Value) -> Option<T>) -> MyTorrentResult<T> {
     let announce_value = dict_get(m, k)?;
-    Ok(t(&announce_value).ok_or("trans")?)
+    Ok(t(&announce_value).ok_or(e_msg!("dict_get"))?)
 }
 pub fn dict_get(m: &Value, k: &str) -> MyTorrentResult<Value> {
-    let decoded_obj = value_as_dict(&m).ok_or("value_as_dict")?;
+    let decoded_obj = value_as_dict(&m).ok_or(e_msg!("value_as_dict"))?;
     let announce_value = decoded_obj
         .get(&k.as_bytes().to_vec())
-        .ok_or("value_as_dict get")?;
+        .ok_or(e_msg!("decoded_obj"))?;
     Ok(announce_value.clone())
 }
 pub fn pieces_hash(v: &Value) -> MyTorrentResult<Vec<String>> {
@@ -124,4 +137,21 @@ pub fn pieces_hash(v: &Value) -> MyTorrentResult<Vec<String>> {
         .collect();
 
     Ok(a)
+}
+pub fn calc_target_chunk_length(total_len: usize, chunk_len: usize, n: usize, idx: usize) -> usize {
+
+    if n - 1 == idx {
+        let md = total_len % chunk_len;
+        if md == 0 {
+            chunk_len
+        } else {
+            md
+        }
+    } else {
+        chunk_len
+    }
+}
+pub fn sha1_u8_20<T: AsRef<[u8]>>(data: T) -> [u8; 20] {
+    let out = Sha1::digest(data);
+    out.into()
 }
