@@ -29,4 +29,9 @@ pub enum Command {
         torrent: PathBuf,
         piece: usize,
     },
+    Download {
+        #[arg(short)]
+        output: PathBuf,
+        torrent: PathBuf,
+    },
 }

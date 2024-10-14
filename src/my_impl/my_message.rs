@@ -60,7 +60,6 @@ impl MyPeerMsg {
         }
     }
     pub fn request(index: u32, begin: u32, length: u32) -> Self {
-        println!("reuqest {} {} {}", index, begin, length);
 
         let request = MyRequestPayload::new(index, begin, length);
         Self {
@@ -78,7 +77,6 @@ impl MyPeerMsg {
         let block_n = (piece_size + BLOCK_SIZE_MAX - 1) / BLOCK_SIZE_MAX;
 
         let it = 0..=block_n - 1;
-        println!("=== piece length {} block_n {}", piece_size, block_n,);
 
         let m = it.map(move |block_i| {
             let block_size = calc_target_chunk_length(piece_size, BLOCK_SIZE_MAX, block_n, block_i);
@@ -143,8 +141,7 @@ impl MyPiecePayload {
     }
     const PIECE_SIZE: usize = std::mem::size_of::<MyPiecePayload<()>>();
     pub fn ref_from_bytes(data: &[u8]) -> Option<&Self> {
-        dbg!(data.len());
-        dbg!(Self::PIECE_SIZE);
+
         if data.len() < Self::PIECE_SIZE {
             return None;
         }
@@ -156,7 +153,5 @@ impl MyPiecePayload {
 }
 #[tokio::test]
 async fn test() {
-    MyConnect::downlaod_piece_at("sample.torrent", "", 0)
-        .await
-        .expect("??");
+
 }

@@ -1,6 +1,7 @@
 use bittorrent_starter_rust::{
     commands::{Args, Command},
-    decode_task, downloadpiece_task, handshake_task, info_task, peers_task, MyTorrentResult,
+    decode_task, download_task, downloadpiece_task, handshake_task, info_task, peers_task,
+    MyTorrentResult,
 };
 use clap::Parser;
 
@@ -26,6 +27,7 @@ async fn main() -> anyhow::Result<()> {
             torrent,
             piece,
         } => downloadpiece_task(torrent, output, piece).await?,
+        Command::Download { output, torrent } => download_task(torrent, output).await?,
     }
     Ok(())
 }

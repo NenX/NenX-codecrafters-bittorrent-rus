@@ -25,7 +25,6 @@ impl Decoder for MyPeerMsgFramed {
         if total_len < LEN_BYTE {
             return Ok(None);
         }
-        println!("decode --> : {:?} ", src.len(),);
 
         let len_slice = src[..4].try_into().context("bytes to len").unwrap();
         let len = u32::from_be_bytes(len_slice) as usize;
@@ -55,7 +54,6 @@ impl Decoder for MyPeerMsgFramed {
         src.advance(4 + len);
 
         let msg = MyPeerMsg { payload, tag };
-        println!("{:?} <--decode  ", msg.tag,);
 
         Ok(Some(msg))
     }
@@ -76,7 +74,6 @@ impl Encoder<MyPeerMsg> for MyPeerMsgFramed {
         dst.put_u8(item.tag as u8);
 
         dst.extend_from_slice(&item.payload);
-        println!("encode : {:?} {:?}", item.tag, dst.len());
         Ok(())
     }
 }
@@ -99,7 +96,6 @@ mod test {
             let mut frame = codec::Framed::new(socket, MyPeerMsgFramed);
 
             let a = frame.next().await.context("read message").unwrap().unwrap();
-            println!("f1 read ==> {:?}", a.tag);
 
             let m = MyPeerMsg {
                 tag: MyPeerMsgTag::Interested,
@@ -121,10 +117,8 @@ mod test {
             let a = frame.next().await.context("read message").unwrap().unwrap();
             let len = a.payload.len();
             let slice = a.payload.split_at(len - 5);
-            println!("f2 read ==> {:?} {:?}", slice.1, a.tag);
 
             let a = frame.next().await.context("read message").unwrap().unwrap();
-            println!("f2 read ==> {:?}", a.tag)
         };
         let h1 = tokio::spawn(async move {
             f1().await;
@@ -133,7 +127,6 @@ mod test {
             time::sleep(Duration::from_secs(1)).await;
             f2().await;
         });
-        println!("??");
         h1.await.context("h1 wait").unwrap();
         h2.await.context("h2 wait").unwrap();
         Ok(())

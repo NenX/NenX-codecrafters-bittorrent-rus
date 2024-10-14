@@ -10,11 +10,13 @@ use tokio::{
 use tokio_util::codec::Framed;
 
 use crate::{
-    my_impl::{MyPeerMsgTag, MyPiecePayload},
+    my_impl::{
+        MyPeerMsgTag, MyPiecePayload, MyTorrentInfoKeys, MyTrackerRequest, MyTrackerResponse,
+    },
     peers_task, sha1_u8_20, MyTorrentResult,
 };
 
-use super::{MyPeerMsg, MyPeerMsgFramed, MyTorrent};
+use super::{MyPeerMsg, MyPeerMsgFramed, MyTorrent, MyTrackerPeers};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -53,14 +55,13 @@ pub struct MyConnect {
 }
 
 impl MyConnect {
-    pub async fn handshake<T: AsRef<Path>>(torrent: T, peer: &str) -> Self {
-        let torrent = MyTorrent::from_file(torrent);
+    pub async fn handshake(torrent: &MyTorrent, peer: &str) -> Self {
         let local_addr = peer.parse::<SocketAddrV4>().expect("parse addr");
 
         let remote_socket = TcpStream::connect(local_addr).await.expect("connect");
 
         let mut ins = Self {
-            torrent,
+            torrent: torrent.clone(),
             local_addr,
             remote_socket,
         };
@@ -74,6 +75,37 @@ impl MyConnect {
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
 
         ins
+    }
+    pub async fn fetch_peers(b: &MyTorrent) -> MyTorrentResult<MyTrackerPeers> {
+        let len = if let MyTorrentInfoKeys::SingleFile { length } = b.info.keys {
+            length
+        } else {
+            todo!()
+        };
+
+        let request_params = MyTrackerRequest {
+            // pubinfo_hash: hx,
+            peer_id: String::from("00112233445566778899"),
+            port: 6881,
+            uploaded: 0,
+            downloaded: 0,
+            left: len,
+            compact: 1,
+        };
+        let request_params = serde_urlencoded::to_string(&request_params).context("url encode")?;
+
+        let request_params = format!(
+            "{}?info_hash={}&{}",
+            b.announce,
+            b.info.urlencode(),
+            request_params
+        );
+        println!("request_params {}", request_params);
+        let res_bytes = reqwest::get(request_params).await?.bytes().await?;
+        let res: MyTrackerResponse = serde_bencode::from_bytes(&res_bytes)?;
+        res.peers.print();
+
+        Ok(res.peers)
     }
 
     async unsafe fn handshake_interact(
@@ -89,24 +121,12 @@ impl MyConnect {
         self.remote_socket.read_exact(handshake_bytes).await?;
         Ok(())
     }
-    pub async fn downlaod_piece_at<T: AsRef<Path>>(
-        torrent: T,
-        output: T,
-        piece_i: usize,
-    ) -> Result<()> {
-        println!("downloadpiece_task");
-        let t = MyTorrent::from_file(&torrent);
-        let peers = peers_task(&torrent).await?;
-        let first_one = &peers.0.get(0).unwrap().to_string();
-        let mut c = Self::handshake(torrent, first_one).await;
-        let peer = &mut c.remote_socket;
 
-        let length = t.single_length().unwrap();
-        let piece_hash = t.info.pieces.0.get(piece_i).unwrap();
-
-        let mut all: Vec<u8> = Vec::with_capacity(length);
-        let reqs = MyPeerMsg::request_iter(piece_i, &t);
-        let mut peer_framed = Framed::new(peer, MyPeerMsgFramed);
+    pub async fn pre_download<'a>(
+        socket: &'a mut TcpStream,
+        // peer_framed: &mut Framed<&mut TcpStream, MyPeerMsgFramed>,
+    ) -> Result<Framed<&'a mut TcpStream, MyPeerMsgFramed>> {
+        let mut peer_framed = Framed::new(socket, MyPeerMsgFramed);
 
         let msg = peer_framed
             .next()
@@ -115,7 +135,7 @@ impl MyConnect {
             .context("peer next")?;
         assert_eq!(msg.tag, MyPeerMsgTag::Bitfield);
 
-        let msg = peer_framed
+        peer_framed
             .send(MyPeerMsg::interested())
             .await
             .context("peer send")?;
@@ -125,8 +145,58 @@ impl MyConnect {
             .await
             .expect("peer next")
             .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
+        Ok(peer_framed)
+    }
+    pub async fn connect(torrent: &MyTorrent) -> Result<MyConnect> {
+        println!("downloadpiece_task");
+        let peers = Self::fetch_peers(torrent).await?;
+        let first_one = &peers.0.get(0).unwrap().to_string();
+        let c = Self::handshake(torrent, first_one).await;
 
-        println!("interested back ======  {:?}", msg);
+        Ok(c)
+    }
+    pub async fn downlaod_piece_at<T: AsRef<Path>>(
+        torrent: &MyTorrent,
+        output: T,
+        piece_i: usize,
+    ) -> Result<()> {
+        let mut c = Self::connect(torrent).await?;
+        let peer = &mut c.remote_socket;
+
+        let mut all: Vec<u8> = vec![];
+        let mut peer_framed = Self::pre_download(peer).await?;
+
+        Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
+
+        fs::write(output, all).await.context("write all")?;
+        Ok(())
+    }
+    pub async fn downlaod_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
+        let mut c = Self::connect(torrent).await?;
+        let peer = &mut c.remote_socket;
+
+        let mut all: Vec<u8> = vec![];
+        let mut peer_framed = Self::pre_download(peer).await?;
+
+        for (piece_i, _) in torrent.info.pieces.0.iter().enumerate() {
+            Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
+        }
+
+        fs::write(output, all).await.context("write all")?;
+        Ok(())
+    }
+    pub async fn downlaod_piece_impl(
+        torrent: &MyTorrent,
+        piece_i: usize,
+        all: &mut Vec<u8>,
+        peer_framed: &mut Framed<&mut TcpStream, MyPeerMsgFramed>,
+    ) -> Result<()> {
+        let mut piece_v = vec![];
+        let piece_hash = torrent.info.pieces.0.get(piece_i).unwrap();
+
+        let reqs = MyPeerMsg::request_iter(piece_i, torrent);
+
         for m in reqs {
             println!("in iter reqs {:?}", m);
             peer_framed.send(m).await.context("send")?;
@@ -137,95 +207,21 @@ impl MyConnect {
                 .expect("req peer next")
                 .context("peer next")?;
 
+            assert_eq!(msg.tag, MyPeerMsgTag::Piece);
+            assert!(!msg.payload.is_empty());
+
             let payload = MyPiecePayload::ref_from_bytes(&msg.payload).expect("piece payload");
 
-            all.extend_from_slice(&payload.block);
+            piece_v.extend_from_slice(&payload.block);
         }
-        println!("len {}", all.len());
 
-        let hash = sha1_u8_20(&all);
+        let hash = sha1_u8_20(&piece_v);
         assert_eq!(&hash, piece_hash);
+        all.extend_from_slice(&piece_v);
 
-        fs::write(output, all).await.context("write all")?;
         Ok(())
     }
 }
 
-#[repr(C)]
-pub struct MyRequest {
-    index: [u8; 4],
-    begin: [u8; 4],
-    length: [u8; 4],
-}
-impl MyRequest {
-    pub fn new(index: u32, begin: u32, length: u32) -> Self {
-        Self {
-            index: index.to_be_bytes(),
-            begin: begin.to_be_bytes(),
-            length: length.to_be_bytes(),
-        }
-    }
-    pub fn index(&self) -> u32 {
-        u32::from_be_bytes(self.index)
-    }
-    pub fn begin(&self) -> u32 {
-        u32::from_be_bytes(self.begin)
-    }
-    pub fn length(&self) -> u32 {
-        u32::from_be_bytes(self.length)
-    }
-    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
-        let bytes = self as *mut Self as *mut [u8; std::mem::size_of::<Self>()];
-        // Safety: Handshake is a POD with repr(c)
-        let bytes: &mut [u8; std::mem::size_of::<Self>()] = unsafe { &mut *bytes };
-        bytes
-    }
-    pub fn as_bytes(&mut self) -> &[u8] {
-        let bytes = self as *const Self as *const [u8; std::mem::size_of::<Self>()];
-        // Safety: Handshake is a POD with repr(c)
-        let bytes = unsafe { &*bytes };
-        bytes
-    }
-}
-#[derive(Debug)]
-#[repr(C)]
-pub struct MyPiece<T: ?Sized = [u8]> {
-    index: [u8; 4],
-    begin: [u8; 4],
-    x: [u8; 4],
-    block: T,
-}
-impl MyPiece {
-    pub fn index(&self) -> u32 {
-        u32::from_be_bytes(self.index)
-    }
-    pub fn begin(&self) -> u32 {
-        u32::from_be_bytes(self.begin)
-    }
-    pub fn block(&self) -> &[u8] {
-        &self.block
-    }
-    const PIECE_LEAD: usize = std::mem::size_of::<MyPiece<()>>();
-    pub fn ref_from_bytes(data: &[u8]) -> Option<&Self> {
-        if data.len() < Self::PIECE_LEAD {
-            return None;
-        }
-        let n = data.len();
-        // NOTE: The slicing here looks really weird. The reason we do it is because we need the
-        // length part of the fat pointer to Piece to old the length of _just_ the `block` field.
-        // And the only way we can change the length of the fat pointer to Piece is by changing the
-        // length of the fat pointer to the slice, which we do by slicing it. We can't slice it at
-        // the front (as it would invalidate the ptr part of the fat pointer), so we slice it at
-        // the back!
-        let piece = &data[..n - Self::PIECE_LEAD] as *const [u8] as *const MyPiece;
-        // Safety: Piece is a POD with repr(c), _and_ the fat pointer data length is the length of
-        // the trailing DST field (thanks to the PIECE_LEAD offset).
-        Some(unsafe { &*piece })
-    }
-}
 #[tokio::test]
-async fn test() {
-    let a = MyConnect::downlaod_piece_at("sample.torrent", "./a", 0)
-        .await
-        .expect("msg");
-}
+async fn test() {}
