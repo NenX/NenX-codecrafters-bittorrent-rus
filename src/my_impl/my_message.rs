@@ -1,6 +1,6 @@
 use bytes::BufMut;
 
-use crate::calc_target_chunk_length;
+use crate::{calc_target_chunk_length, my_impl::MyConnect, Torrent};
 
 use super::MyTorrent;
 const BLOCK_SIZE_MAX: usize = 1 << 14;
@@ -60,6 +60,8 @@ impl MyPeerMsg {
         }
     }
     pub fn request(index: u32, begin: u32, length: u32) -> Self {
+        println!("reuqest {} {} {}", index, begin, length);
+
         let request = MyRequestPayload::new(index, begin, length);
         Self {
             tag: MyPeerMsgTag::Request,
@@ -75,7 +77,8 @@ impl MyPeerMsg {
 
         let block_n = (piece_size + BLOCK_SIZE_MAX - 1) / BLOCK_SIZE_MAX;
 
-        let it = 0..=block_n;
+        let it = 0..=block_n - 1;
+        println!("=== piece length {} block_n {}", piece_size, block_n,);
 
         let m = it.map(move |block_i| {
             let block_size = calc_target_chunk_length(piece_size, BLOCK_SIZE_MAX, block_n, block_i);
@@ -92,17 +95,23 @@ impl MyPeerMsg {
 #[derive(Debug)]
 #[repr(C)]
 pub struct MyRequestPayload {
-    index: [u8; 4],
-    begin: [u8; 4],
-    length: [u8; 4],
+    pub index: [u8; 4],
+    pub begin: [u8; 4],
+    pub length: [u8; 4],
 }
 impl MyRequestPayload {
     pub fn new(index: u32, begin: u32, length: u32) -> Self {
-        Self {
-            index: index.to_be_bytes(),
-            begin: begin.to_be_bytes(),
-            length: length.to_be_bytes(),
-        }
+        let index = index.to_be_bytes();
+        let begin = begin.to_be_bytes();
+        let length = length.to_be_bytes();
+        let ins = Self {
+            index,
+            begin,
+            length,
+        };
+
+        println!("request {:?}", ins);
+        ins
     }
     pub fn to_bytes(&self) -> &[u8] {
         let a = self as *const Self as *const [u8; std::mem::size_of::<Self>()];
@@ -121,9 +130,9 @@ impl MyRequestPayload {
 #[derive(Debug)]
 #[repr(C)]
 pub struct MyPiecePayload<T: ?Sized = [u8]> {
-    index: [u8; 4],
-    begin: [u8; 4],
-    block: T,
+   pub index: [u8; 4],
+   pub begin: [u8; 4],
+   pub block: T,
 }
 impl MyPiecePayload {
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -145,5 +154,9 @@ impl MyPiecePayload {
         return Some(a);
     }
 }
-#[test]
-fn test() {}
+#[tokio::test]
+async fn test() {
+    MyConnect::downlaod_piece_at("sample.torrent", "", 0)
+        .await
+        .expect("??");
+}

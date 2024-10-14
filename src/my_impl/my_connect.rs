@@ -3,11 +3,16 @@ use std::{net::SocketAddrV4, path::Path, slice};
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
 use tokio::{
-    fs, io::{AsyncReadExt, AsyncWriteExt}, net::TcpStream
+    fs,
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpStream,
 };
 use tokio_util::codec::Framed;
 
-use crate::{my_impl::MyPeerMsgTag, peers_task, sha1_u8_20, MyTorrentResult};
+use crate::{
+    my_impl::{MyPeerMsgTag, MyPiecePayload},
+    peers_task, sha1_u8_20, MyTorrentResult,
+};
 
 use super::{MyPeerMsg, MyPeerMsgFramed, MyTorrent};
 
@@ -99,34 +104,46 @@ impl MyConnect {
         let length = t.single_length().unwrap();
         let piece_hash = t.info.pieces.0.get(piece_i).unwrap();
 
-        let mut all = Vec::with_capacity(length);
+        let mut all: Vec<u8> = Vec::with_capacity(length);
         let reqs = MyPeerMsg::request_iter(piece_i, &t);
         let mut peer_framed = Framed::new(peer, MyPeerMsgFramed);
 
-        let msg = peer_framed.next().await.expect("peer next").context("peer next")?;
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
         assert_eq!(msg.tag, MyPeerMsgTag::Bitfield);
-  
 
         let msg = peer_framed
             .send(MyPeerMsg::interested())
             .await
             .context("peer send")?;
 
-        let msg = peer_framed.next().await.expect("peer next").context("peer next")?;
-        println!("interested back {:?}", msg);
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
 
+        println!("interested back ======  {:?}", msg);
         for m in reqs {
+            println!("in iter reqs {:?}", m);
             peer_framed.send(m).await.context("send")?;
 
-            let msg = peer_framed.next().await.expect("peer next").context("peer next")?;
-            all.extend_from_slice(&msg.payload);
-            println!("x {:?}", msg);
+            let msg = peer_framed
+                .next()
+                .await
+                .expect("req peer next")
+                .context("peer next")?;
+
+            let payload = MyPiecePayload::ref_from_bytes(&msg.payload).expect("piece payload");
+
+            all.extend_from_slice(&payload.block);
         }
         println!("len {}", all.len());
 
         let hash = sha1_u8_20(&all);
-        println!("piece_hash {:x?}",hash);
-        println!("piece_hash {:x?}",piece_hash);
         assert_eq!(&hash, piece_hash);
 
         fs::write(output, all).await.context("write all")?;

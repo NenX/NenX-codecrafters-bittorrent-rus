@@ -2,11 +2,9 @@ use std::{fs, path::Path};
 
 use anyhow::Context;
 use serde::{de::Visitor, Deserialize, Serialize};
-use serde_bytes::serialize;
 use sha1::{Digest, Sha1};
 
 
-use super::{MyPeerMsg, MyRequestPayload};
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MyTorrent {

@@ -25,7 +25,7 @@ impl Decoder for MyPeerMsgFramed {
         if total_len < LEN_BYTE {
             return Ok(None);
         }
-        println!("decode --> : {:?} ", src,);
+        println!("decode --> : {:?} ", src.len(),);
 
         let len_slice = src[..4].try_into().context("bytes to len").unwrap();
         let len = u32::from_be_bytes(len_slice) as usize;
@@ -52,8 +52,10 @@ impl Decoder for MyPeerMsgFramed {
         } else {
             src[LEN_BYTE + 1..LEN_BYTE + len].to_vec()
         };
+        src.advance(4 + len);
+
         let msg = MyPeerMsg { payload, tag };
-        println!("{:?} <--decode  ", msg,);
+        println!("{:?} <--decode  ", msg.tag,);
 
         Ok(Some(msg))
     }
@@ -74,7 +76,7 @@ impl Encoder<MyPeerMsg> for MyPeerMsgFramed {
         dst.put_u8(item.tag as u8);
 
         dst.extend_from_slice(&item.payload);
-        println!("encode : {:?} {:?}", item, dst);
+        println!("encode : {:?} {:?}", item.tag, dst.len());
         Ok(())
     }
 }
