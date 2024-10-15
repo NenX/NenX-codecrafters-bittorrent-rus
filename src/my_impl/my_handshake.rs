@@ -30,7 +30,7 @@ impl MyHandShakeData {
 
         let item = reserved.get(5).unwrap();
 
-        dbg!(reserved);
+        println!("ffw {:?}", reserved);
 
         *item == 0x10
     }
