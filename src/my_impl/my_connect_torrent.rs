@@ -101,11 +101,14 @@ impl MyConnect {
         Ok(())
     }
     pub async fn magnet_info(mag: &MyMagnet) -> Result<()> {
-        println!("do magnet_info");
+        println!("magnet_info 0");
         let mut conn = Self::magnet_handshake(mag).await?;
         let ext_payload = conn.ext_hs_payload.clone().unwrap();
+        println!("magnet_info 1 {:?}", ext_payload);
+
         let mut peer_framed = conn.pre_download().await?;
-        println!("ext_payload {:?}", ext_payload);
+        println!("magnet_info 2 {:?}", ext_payload);
+
         peer_framed
             .send(MyPeerMsg::ext_meta_request(ext_payload.ut_metadata(), 0, 0))
             .await
