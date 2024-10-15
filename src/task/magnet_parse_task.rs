@@ -8,3 +8,4 @@ pub fn magnet_parse_task(link: &str) ->Result<()>{
     println!("Info Hash: {}",m.xt);
     Ok(())
 }
+

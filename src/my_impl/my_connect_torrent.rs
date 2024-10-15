@@ -41,11 +41,7 @@ impl MyConnect {
             assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
             let msg = MyExtHandshakePayload::from_bytes(&msg.payload).expect("parse ext payload");
             println!("Peer Metadata Extension ID: {}", msg.ut_metadata());
-
-            peer_framed
-                .send(MyPeerMsg::ext_meta_request(msg.ut_metadata(), 0, 0))
-                .await
-                .context("peer send")?;
+            self.ext_hs_payload = Some(msg);
         } else {
             peer_framed
                 .send(MyPeerMsg::interested())
@@ -62,6 +58,7 @@ impl MyConnect {
 
         Ok(peer_framed)
     }
+
     pub async fn connect(torrent: &MyTorrent) -> Result<MyConnect> {
         println!("downloadpiece_task");
         let peers = torrent.fetch_peers().await?;
@@ -70,6 +67,7 @@ impl MyConnect {
 
         Ok(c)
     }
+
     pub async fn downlaod_piece_at<T: AsRef<Path>>(
         torrent: &MyTorrent,
         output: T,
@@ -99,6 +97,19 @@ impl MyConnect {
         }
 
         fs::write(output, all).await.context("write all")?;
+        Ok(())
+    }
+    pub async fn magnet_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
+        println!("download {:?}", torrent);
+        let mut conn = Self::connect(torrent).await?;
+        let ext_payload = conn.ext_hs_payload.clone().unwrap();
+        let mut peer_framed = conn.pre_download().await?;
+
+        peer_framed
+            .send(MyPeerMsg::ext_meta_request(ext_payload.ut_metadata(), 0, 0))
+            .await
+            .context("peer send")?;
+
         Ok(())
     }
     pub async fn downlaod_piece_impl(

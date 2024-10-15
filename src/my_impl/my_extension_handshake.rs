@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 
 pub struct MyExtHandshakePayload {
     pub ext_msg_id: u8,
@@ -47,7 +47,7 @@ impl MyExtHandshakePayload {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct MyExtHandshakeDic {
     pub m: HashMap<String, usize>,
 }

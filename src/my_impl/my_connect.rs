@@ -8,12 +8,13 @@ use tokio::{
 
 use crate::my_impl::MyHandShakeData;
 
-use super::{MyMagnet, MyTorrent};
+use super::{MyExtHandshakePayload, MyMagnet, MyTorrent};
 #[derive(Debug)]
 pub struct MyConnect {
     pub local_addr: SocketAddrV4,
     pub remote_socket: TcpStream,
     pub hs_data: Option<MyHandShakeData>,
+    pub ext_hs_payload: Option<MyExtHandshakePayload>,
 }
 
 impl MyConnect {
@@ -26,6 +27,7 @@ impl MyConnect {
             local_addr,
             remote_socket,
             hs_data: None,
+            ext_hs_payload: None,
         }
     }
     pub async fn handshake(torrent: &MyTorrent, peer: &str) -> Result<Self> {
