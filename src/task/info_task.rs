@@ -3,9 +3,8 @@ use std::path::Path;
 use sha1::{Digest, Sha1};
 
 use crate::{
-    dict_get, dict_get_as, display_value,
-    my_impl::MyTorrent,
-    pieces_hash, value_as_bytes, value_as_int, MyBEncodedBuf, MyTorrentResult,
+    dict_get, dict_get_as, display_value, my_impl::MyTorrent, pieces_hash, value_as_bytes,
+    value_as_int, MyBEncodedBuf, MyTorrentResult,
 };
 
 // Usage: 70edcac2611a8829ebf467a6849f5d8408d9d8f4
@@ -55,9 +54,7 @@ pub fn info_task<T: AsRef<Path>>(file_name: T) -> MyTorrentResult<()> {
                 .for_each(|f| println!("Length: {:?}", f.length));
         }
     }
-    println!("Info Hash: {} ", b.info.hash());
-    println!("Piece Length: {}", b.info.piece_length);
-    println!("Piece Hashes: ");
-    b.info.pieces.print();
+    b.info.print();
+
     Ok(())
 }

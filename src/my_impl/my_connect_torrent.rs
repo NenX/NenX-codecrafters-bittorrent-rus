@@ -135,7 +135,8 @@ impl MyConnect {
         assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
 
         let a = MyExtMetaDataPayload::from_bytes(&msg.payload).expect("parse magnet info");
-        println!("rr {:?}",a);
+        mag.print();
+        a.info.expect("info").print();
         Ok(())
     }
     pub async fn downlaod_piece_impl(

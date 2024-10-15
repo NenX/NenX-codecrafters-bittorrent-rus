@@ -16,6 +16,10 @@ pub struct MyMagnet {
 }
 const MAGNET_PROTOCOL: &str = "magnet:?";
 impl MyMagnet {
+    pub fn print(&self) {
+        println!("Tracker URL: {}", self.tr);
+        println!("Info Hash: {}", self.xt);
+    }
     pub fn info_hash(&self) -> Result<[u8; 20]> {
         let xt = &self.xt;
 
@@ -82,7 +86,9 @@ impl MyMagnet {
             compact: 1,
         };
 
-        let request_params = serde_urlencoded::to_string(&request_params).context("url encode").expect("request parse");
+        let request_params = serde_urlencoded::to_string(&request_params)
+            .context("url encode")
+            .expect("request parse");
 
         let url = format!(
             "{}?info_hash={}&{}",
@@ -91,8 +97,14 @@ impl MyMagnet {
             request_params
         );
         // println!("url {url}");
-        let res_bytes = reqwest::get(url).await.expect("request peer 0").bytes().await.expect("request peer 1");
-        let res: MyTrackerResponse = serde_bencode::from_bytes(&res_bytes).expect("request response");
+        let res_bytes = reqwest::get(url)
+            .await
+            .expect("request peer 0")
+            .bytes()
+            .await
+            .expect("request peer 1");
+        let res: MyTrackerResponse =
+            serde_bencode::from_bytes(&res_bytes).expect("request response");
         // res.peers.print();
 
         Ok(res.peers)

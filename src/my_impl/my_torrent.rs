@@ -29,6 +29,12 @@ pub struct MyTorrentInfo {
     pub pieces: MyTorrentPieces,
 }
 impl MyTorrentInfo {
+    pub fn print(&self) {
+        println!("Info Hash: {} ", self.hash());
+        println!("Piece Length: {}", self.piece_length);
+        println!("Piece Hashes: ");
+        self.pieces.print();
+    }
     pub fn hash(&self) -> String {
         let info_encoded = serde_bencode::to_bytes(self).expect("info to bytes");
 
