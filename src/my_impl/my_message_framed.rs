@@ -94,7 +94,6 @@ mod test {
         let mut f = MyPeerMsgFramed;
         let a = b"\0\0\01\x14\0d1:md11:ut_metadatai239ee13:metadata_sizei132ee";
         let a = f.decode(&mut BytesMut::from_iter(a.iter()));
-        println!("qq {:?}", a)
     }
     #[tokio::test]
     async fn test1() -> Result<()> {

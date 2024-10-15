@@ -62,7 +62,6 @@ impl MyExtMetaDataPayload {
                 dic,
                 info: Some(info),
             };
-            println!("zz {:?}",a);
             return Some(a);
         }
 

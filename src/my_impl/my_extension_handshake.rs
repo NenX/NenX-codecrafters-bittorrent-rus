@@ -69,6 +69,5 @@ mod a {
 
         let m = MyExtHandshakeDic { m: hash_map };
         let s = serde_bencode::to_string(&m);
-        println!("s {:?}", s)
     }
 }
