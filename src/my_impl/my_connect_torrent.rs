@@ -103,7 +103,7 @@ impl MyConnect {
         let mut conn = Self::magnet_handshake(mag).await?;
         let ext_payload = conn.ext_hs_payload.clone().unwrap();
         let mut peer_framed = conn.pre_download().await?;
-
+        println!("ext_payload {:?}",ext_payload);
         peer_framed
             .send(MyPeerMsg::ext_meta_request(ext_payload.ut_metadata(), 0, 0))
             .await
