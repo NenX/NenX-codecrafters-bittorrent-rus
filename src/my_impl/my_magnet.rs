@@ -25,7 +25,6 @@ impl MyMagnet {
             return e_msg!(;"");
         }
         let link = &link[MAGNET_PROTOCOL.len()..];
-        println!("parse {} {}", link.len(), link);
 
         let a = link.split('&');
         let m: HashMap<String, String> = a
@@ -50,7 +49,6 @@ impl MyMagnet {
                 return Some((key, value));
             })
             .collect();
-        println!("{:?}", m);
         Ok(Self::from_hashmap(m))
     }
 }
