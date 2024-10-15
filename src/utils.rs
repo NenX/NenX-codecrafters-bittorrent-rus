@@ -1,6 +1,6 @@
-use std::{collections::HashMap, fmt::format};
+use std::collections::HashMap;
 
-use anyhow::{Error, Result};
+use anyhow::Result;
 use serde_bencode::value::Value;
 use sha1::{Digest, Sha1};
 // pub type MyTorrentResult<T> = Result<T, Box<dyn Error>>;
@@ -33,14 +33,14 @@ pub fn get_sorted_dict_keys(s: &HashMap<Vec<u8>, Value>) -> Vec<Vec<u8>> {
 
 fn display_value_impl(value: &Value) {
     match value {
-        Value::Bytes(vec) => print!(r#""{}""#, String::from_utf8_lossy(vec).to_string()),
+        Value::Bytes(vec) => print!(r#""{}""#, String::from_utf8_lossy(vec)),
         Value::Int(i) => print!("{}", i),
         Value::List(vec) => {
             let mut len = vec.len();
             print!("[");
             vec.iter().for_each(|v| {
                 len -= 1;
-                display_value_impl(&v);
+                display_value_impl(v);
                 if len > 0 {
                     print!(",");
                 }
@@ -51,7 +51,7 @@ fn display_value_impl(value: &Value) {
             print!("{{");
             let mut len = hash_map.len();
             let keys = get_sorted_dict_keys(hash_map);
-            if keys.len() > 0 {
+            if !keys.is_empty() {
                 keys.iter().for_each(|k| {
                     if let Some(v) = hash_map.get(k) {
                         len -= 1;
@@ -75,7 +75,7 @@ fn display_value_impl(value: &Value) {
                     display_value_impl(&Value::Bytes(k.to_vec()));
 
                     print!(":");
-                    display_value_impl(&v.1);
+                    display_value_impl(v.1);
                     if len > 0 {
                         print!(",");
                     }
@@ -94,7 +94,7 @@ pub fn value_as_bytes(v: &Value) -> Option<Vec<u8>> {
 }
 pub fn value_as_int(v: &Value) -> Option<i64> {
     match v {
-        Value::Int(vec) => Some(vec.clone()),
+        Value::Int(vec) => Some(*vec),
         _ => None,
     }
 }
@@ -112,27 +112,27 @@ pub fn value_as_dict(v: &Value) -> Option<HashMap<Vec<u8>, Value>> {
 }
 pub fn display_value(v: &Value) {
     display_value_impl(v);
-    print!("\n");
+    println!();
 }
 
 pub fn dict_get_as<T>(m: &Value, k: &str, t: impl Fn(&Value) -> Option<T>) -> MyTorrentResult<T> {
     let announce_value = dict_get(m, k)?;
-    Ok(t(&announce_value).ok_or(e_msg!("dict_get"))?)
+    t(&announce_value).ok_or(e_msg!("dict_get"))
 }
 pub fn dict_get(m: &Value, k: &str) -> MyTorrentResult<Value> {
-    let decoded_obj = value_as_dict(&m).ok_or(e_msg!("value_as_dict"))?;
+    let decoded_obj = value_as_dict(m).ok_or(e_msg!("value_as_dict"))?;
     let announce_value = decoded_obj
         .get(&k.as_bytes().to_vec())
         .ok_or(e_msg!("decoded_obj"))?;
     Ok(announce_value.clone())
 }
 pub fn pieces_hash(v: &Value) -> MyTorrentResult<Vec<String>> {
-    let pieces = dict_get_as(v, "pieces", |v| value_as_bytes(v))?;
+    let pieces = dict_get_as(v, "pieces", value_as_bytes)?;
     let a: Vec<_> = pieces
         .chunks(20)
         .map(|c| {
             let s: String = hex::encode(c);
-            return s;
+            s
         })
         .collect();
 

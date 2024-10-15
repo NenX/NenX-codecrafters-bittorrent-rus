@@ -99,13 +99,13 @@ mod test {
 
             let m = MyPeerMsg {
                 tag: MyPeerMsgTag::Interested,
-                payload: vec![1].repeat(MAX),
+                payload: [1].repeat(MAX),
             };
             frame.send(m.clone()).await.context("send").unwrap();
             frame.send(m).await.context("send").unwrap();
         };
         let f2 = || async {
-            let mut socket = tokio::net::TcpStream::connect("0.0.0.0:2233")
+            let socket = tokio::net::TcpStream::connect("0.0.0.0:2233")
                 .await
                 .unwrap();
             let mut frame = codec::Framed::new(socket, MyPeerMsgFramed);

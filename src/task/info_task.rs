@@ -1,11 +1,10 @@
 use std::path::Path;
 
-use serde_bencode::value::Value;
 use sha1::{Digest, Sha1};
 
 use crate::{
     dict_get, dict_get_as, display_value,
-    my_impl::{MyPeerMsg, MyRequestPayload, MyTorrent},
+    my_impl::MyTorrent,
     pieces_hash, value_as_bytes, value_as_int, MyBEncodedBuf, MyTorrentResult,
 };
 
@@ -23,10 +22,10 @@ pub fn info_raw(file_name: &str) -> MyTorrentResult<()> {
 
     let info_value = dict_get(&decoded_value, "info")?;
 
-    let announce_vec = dict_get_as(&decoded_value, "announce", |v| value_as_bytes(v))?;
+    let announce_vec = dict_get_as(&decoded_value, "announce", value_as_bytes)?;
 
-    let length = dict_get_as(&info_value, "length", |v| value_as_int(v))?;
-    let piece_length = dict_get_as(&info_value, "piece length", |v| value_as_int(v))?;
+    let length = dict_get_as(&info_value, "length", value_as_int)?;
+    let piece_length = dict_get_as(&info_value, "piece length", value_as_int)?;
 
     let _ = buf.encode(&info_value);
 

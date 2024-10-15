@@ -1,4 +1,4 @@
-use std::{net::SocketAddrV4, path::Path, slice};
+use std::{net::SocketAddrV4, path::Path};
 
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
@@ -12,8 +12,7 @@ use tokio_util::codec::Framed;
 use crate::{
     my_impl::{
         MyPeerMsgTag, MyPiecePayload, MyTorrentInfoKeys, MyTrackerRequest, MyTrackerResponse,
-    },
-    peers_task, sha1_u8_20, MyTorrentResult,
+    }, sha1_u8_20, MyTorrentResult,
 };
 
 use super::{MyPeerMsg, MyPeerMsgFramed, MyTorrent, MyTrackerPeers};
@@ -151,7 +150,7 @@ impl MyConnect {
     pub async fn connect(torrent: &MyTorrent) -> Result<MyConnect> {
         println!("downloadpiece_task");
         let peers = Self::fetch_peers(torrent).await?;
-        let first_one = &peers.0.get(0).unwrap().to_string();
+        let first_one = &peers.0.first().unwrap().to_string();
         let c = Self::handshake(torrent, first_one).await;
 
         Ok(c)

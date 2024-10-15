@@ -74,16 +74,16 @@ impl MyPeerMsg {
 
         let it = 0..=block_n - 1;
 
-        let m = it.map(move |block_i| {
+        
+
+        it.map(move |block_i| {
             let block_size = calc_target_chunk_length(piece_size, BLOCK_SIZE_MAX, block_n, block_i);
 
-            return Self::request(
+            Self::request(
                 piece_i as u32,
                 (block_i * BLOCK_SIZE_MAX) as u32,
                 block_size as u32,
-            );
-        });
-
-        m
+            )
+        })
     }
 }

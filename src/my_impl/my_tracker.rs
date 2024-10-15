@@ -69,7 +69,7 @@ impl Serialize for MyTrackerPeers {
         let v: Vec<_> = self
             .0
             .iter()
-            .map(|addr| {
+            .flat_map(|addr| {
                 let ip: [u8; 4] = addr.ip().octets();
                 let port: [u8; 2] = addr.port().to_be_bytes();
                 let mut v = vec![];
@@ -77,7 +77,6 @@ impl Serialize for MyTrackerPeers {
                 v.extend_from_slice(&port);
                 v
             })
-            .flatten()
             .collect();
         serializer.serialize_bytes(&v)
     }

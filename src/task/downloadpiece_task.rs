@@ -11,8 +11,8 @@ pub async fn downloadpiece_task<T: AsRef<Path>>(
 ) -> MyTorrentResult<()> {
     let torrent = MyTorrent::from_file(torrent);
 
-    let a = MyConnect::downlaod_piece_at(&torrent, output, piece).await;
-    a
+    
+    MyConnect::downlaod_piece_at(&torrent, output, piece).await
 }
 
 pub async fn download_task<T: AsRef<Path>>(
@@ -22,8 +22,8 @@ pub async fn download_task<T: AsRef<Path>>(
 ) -> MyTorrentResult<()> {
     let torrent = MyTorrent::from_file(torrent);
 
-    let a = MyConnect::downlaod_all(&torrent, output).await;
-    a
+    
+    MyConnect::downlaod_all(&torrent, output).await
 }
 
 #[tokio::test]

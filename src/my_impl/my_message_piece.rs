@@ -1,6 +1,4 @@
-use crate::calc_target_chunk_length;
 
-use super::{MyRequestPayload, MyTorrent};
 const BLOCK_SIZE_MAX: usize = 1 << 14;
 
 #[derive(Debug)]
@@ -25,7 +23,7 @@ impl MyPiecePayload {
         let correct_len = data.len() - Self::PIECE_SIZE;
         let fat_pointer_with_correct_len = &data[..correct_len] as *const [u8] as *const Self;
         let a = unsafe { &*fat_pointer_with_correct_len };
-        return Some(a);
+        Some(a)
     }
 }
 #[tokio::test]

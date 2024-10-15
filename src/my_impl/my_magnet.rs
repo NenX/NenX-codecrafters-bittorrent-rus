@@ -1,21 +1,20 @@
-use std::{collections::HashMap, io, str::FromStr};
+use std::collections::HashMap;
 
 use anyhow::Result;
-use regex::Replacer;
-use reqwest::Url;
 
 use crate::e_msg;
 
 pub struct MyMagnet {
-    pub urn_btih: String,
+    pub xt: String,
     pub dn: String,
     pub tr: String,
 }
 const MAGNET_PROTOCOL: &str = "magnet:?";
 impl MyMagnet {
     pub fn from_hashmap(m: HashMap<String, String>) -> Self {
+        dbg!(&m);
         Self {
-            urn_btih: m.get("urn_btih").cloned().unwrap_or_default(),
+            xt: m.get("xt").cloned().unwrap_or_default(),
             dn: m.get("dn").cloned().unwrap_or_default(),
             tr: m.get("tr").cloned().unwrap_or_default(),
         }
@@ -46,7 +45,7 @@ impl MyMagnet {
                 if value.starts_with("urn:btih:") {
                     value = value.replace("urn:btih:", "");
                 }
-                return Some((key, value));
+                Some((key, value))
             })
             .collect();
         Ok(Self::from_hashmap(m))

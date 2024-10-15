@@ -1,4 +1,3 @@
-use std::env;
 
 use crate::{display_value, MyBEncodedBuf};
 

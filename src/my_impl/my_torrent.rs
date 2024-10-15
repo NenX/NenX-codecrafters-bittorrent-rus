@@ -29,8 +29,8 @@ impl MyTorrentInfo {
 
         let h = Sha1::digest(info_encoded);
         // let h = self.info_hash();
-        let hx = hex::encode(h);
-        hx
+        
+        hex::encode(h)
     }
     pub fn info_hash(&self) -> [u8; 20] {
         let info_encoded =
@@ -39,8 +39,7 @@ impl MyTorrentInfo {
         hasher.update(&info_encoded);
         hasher
             .finalize()
-            .try_into()
-            .expect("GenericArray<_, 20> == [_; 20]")
+            .into()
     }
     pub fn urlencode(&self) -> String {
         let bytes = self.info_hash();
@@ -48,7 +47,7 @@ impl MyTorrentInfo {
 
         bytes.iter().for_each(|b| {
             s.push('%');
-            s.push_str(&hex::encode(&[*b]));
+            s.push_str(&hex::encode([*b]));
         });
 
         s

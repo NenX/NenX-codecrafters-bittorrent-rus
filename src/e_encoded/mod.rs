@@ -1,10 +1,7 @@
 use core::str;
-use std::{collections::HashMap, error::Error, fmt::Display};
+use std::collections::HashMap;
 
-use clap::builder::Str;
 use serde_bencode::value::Value;
-use serde_json::Map;
-use sha1::digest::crypto_common::Key;
 
 use crate::{e_msg, get_sorted_dict_keys, MyTorrentResult};
 
@@ -13,6 +10,12 @@ pub struct MyBEncodedBuf {
     pub inner_buf: Vec<u8>,
     pub outer_buf: Vec<u8>,
 }
+impl Default for MyBEncodedBuf {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MyBEncodedBuf {
     pub fn new() -> Self {
         Self {
@@ -22,8 +25,8 @@ impl MyBEncodedBuf {
         }
     }
     pub fn get_current_slice(&self) -> &[u8] {
-        let a = &self.inner_buf[self.pos..];
-        a
+        
+        (&self.inner_buf[self.pos..]) as _
     }
     pub fn len_bound(&self) -> usize {
         self.inner_buf.len()
@@ -70,7 +73,7 @@ impl MyBEncodedBuf {
     pub fn decode_str(&mut self) -> MyTorrentResult<Value> {
         let a = self.split_by(b':')?;
         let aa = String::from_utf8_lossy(a.0).to_string();
-        let n = aa.parse::<usize>().expect(&format!("parse_str {}", aa));
+        let n = aa.parse::<usize>().unwrap_or_else(|_| panic!("parse_str {}", aa));
         let s: Value = (a.1[1..n + 1].to_vec()).into();
         self.step(1 + a.0.len() + n)?;
 
@@ -95,12 +98,10 @@ impl MyBEncodedBuf {
         let pair = self.split_by(b'e')?;
         let bb = String::from_utf8_lossy(pair.1).to_string();
         let aa = String::from_utf8_lossy(pair.0).to_string();
-        let n = aa.parse::<i64>().expect(&format!(
-            "parse_integer [{}] [{}] [{}]",
+        let n = aa.parse::<i64>().unwrap_or_else(|_| panic!("parse_integer [{}] [{}] [{}]",
             aa,
             bb,
-            String::from_utf8_lossy(&self.inner_buf)
-        ));
+            String::from_utf8_lossy(&self.inner_buf)));
 
         self.step(pair.0.len() + 1)?;
 
@@ -172,7 +173,7 @@ impl MyBEncodedBuf {
     pub fn encode_dict(&mut self, s: &HashMap<Vec<u8>, Value>) -> MyTorrentResult<()> {
         self.outer_buf.push(b'd');
         let keys = get_sorted_dict_keys(s);
-        if keys.len() > 0 {
+        if !keys.is_empty() {
             keys.iter().for_each(|k| {
                 let v = s.get(k);
                 if let Some(value) = v {
@@ -187,7 +188,7 @@ impl MyBEncodedBuf {
                 if k.contains(&b'*') {
                     return;
                 }
-                let _ = self.encode_str(&item.0);
+                let _ = self.encode_str(item.0);
                 // println!("encode_dict {}", String::from_utf8_lossy(item.0));
                 let _ = self.encode(item.1);
             });
@@ -225,21 +226,21 @@ impl MyBEncodedBuf {
         let c = self.peek()?;
         let a = match c {
             b'i' => {
-                let n = self.decode_integer()?;
-                n
+                
+                self.decode_integer()?
             }
             b'l' => {
-                let n = self.decode_list()?;
-                n
+                
+                self.decode_list()?
             }
             b'd' => {
-                let n = self.decode_dict()?;
-                n
+                
+                self.decode_dict()?
             }
 
             b'0'..=b'9' => {
-                let n = self.decode_str()?;
-                n
+                
+                self.decode_str()?
             }
 
             _ => {
@@ -249,13 +250,13 @@ impl MyBEncodedBuf {
         Ok(a)
     }
     pub fn encode(&mut self, value: &Value) -> MyTorrentResult<()> {
-        let a = match value {
+        
+        match value {
             Value::Int(number) => self.encode_integer(*number),
             Value::Bytes(s) => self.encode_str(s),
-            Value::List(vec) => self.encode_list(&vec),
-            Value::Dict(map) => self.encode_dict(&map),
-        };
-        a
+            Value::List(vec) => self.encode_list(vec),
+            Value::Dict(map) => self.encode_dict(map),
+        }
     }
 }
 impl From<&str> for MyBEncodedBuf {
