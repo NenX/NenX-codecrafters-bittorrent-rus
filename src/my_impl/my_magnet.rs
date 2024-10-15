@@ -70,7 +70,6 @@ impl MyMagnet {
     }
 
     pub async fn fetch_peers(&self) -> Result<MyTrackerPeers> {
-        println!("fetch_peers 0");
         let len = 1;
 
         let request_params = MyTrackerRequest {
@@ -82,10 +81,8 @@ impl MyMagnet {
             left: len,
             compact: 1,
         };
-        println!("fetch_peers 1");
 
         let request_params = serde_urlencoded::to_string(&request_params).context("url encode").expect("request parse");
-        println!("fetch_peers 2");
 
         let url = format!(
             "{}?info_hash={}&{}",

@@ -72,10 +72,8 @@ impl MyConnect {
         ins
     }
     pub async fn magnet_handshake(mag: &MyMagnet) -> Result<Self> {
-        println!("hs_data !!!!!!!!!! ");
 
         let a = mag.fetch_peers().await?;
-        println!("hs_data 00 {:?}",a);
         let peer = a.0.get(0).unwrap().to_string();
         let info_hash = mag.info_hash()?;
 
@@ -84,7 +82,6 @@ impl MyConnect {
         *item = 16;
 
         let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899", reserved);
-        println!("hs_data {:?} {:?}", peer, hs_data);
         let ins = unsafe {
             Self::new(&peer)
                 .await
