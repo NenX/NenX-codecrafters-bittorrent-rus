@@ -77,7 +77,7 @@ impl MyConnect {
         let info_hash = mag.info_hash()?;
 
         let mut reserved = [0; 8];
-        let item = reserved.get_mut(2).unwrap();
+        let item = reserved.get_mut(5).unwrap();
         *item = 16;
 
         let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899", reserved);
