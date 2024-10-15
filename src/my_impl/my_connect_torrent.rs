@@ -100,6 +100,7 @@ impl MyConnect {
         Ok(())
     }
     pub async fn magnet_info(mag: &MyMagnet) -> Result<()> {
+        println!("do magnet_info");
         let mut conn = Self::magnet_handshake(mag).await?;
         let ext_payload = conn.ext_hs_payload.clone().unwrap();
         let mut peer_framed = conn.pre_download().await?;
