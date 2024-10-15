@@ -12,7 +12,8 @@ use tokio_util::codec::Framed;
 use crate::{
     my_impl::{
         MyPeerMsgTag, MyPiecePayload, MyTorrentInfoKeys, MyTrackerRequest, MyTrackerResponse,
-    }, sha1_u8_20, MyTorrentResult,
+    },
+    sha1_u8_20, MyTorrentResult,
 };
 
 use super::{MyPeerMsg, MyPeerMsgFramed, MyTorrent, MyTrackerPeers};
@@ -172,6 +173,7 @@ impl MyConnect {
         Ok(())
     }
     pub async fn downlaod_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
+        println!("download {:?}", torrent);
         let mut c = Self::connect(torrent).await?;
         let peer = &mut c.remote_socket;
 
