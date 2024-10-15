@@ -6,7 +6,7 @@ use tokio::{fs, io::AsyncWriteExt, net::TcpStream};
 use tokio_util::codec::Framed;
 
 use crate::{
-    my_impl::{MyExtHandshakePayload, MyPeerMsgTag, MyPiecePayload},
+    my_impl::{MyExtHandshakePayload, MyExtMetaDataPayload, MyPeerMsgTag, MyPiecePayload},
     sha1_u8_20,
 };
 
@@ -133,7 +133,9 @@ impl MyConnect {
             .expect("peer next")
             .context("peer next")?;
         assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
-        println!("rr {:?}",msg);
+
+        let a = MyExtMetaDataPayload::from_bytes(&msg.payload).expect("parse magnet info");
+        println!("rr {:?}",a);
         Ok(())
     }
     pub async fn downlaod_piece_impl(
