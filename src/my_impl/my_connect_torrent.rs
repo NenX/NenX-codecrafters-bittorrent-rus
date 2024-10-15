@@ -71,7 +71,6 @@ impl MyConnect {
         let msg = MyExtHandshakePayload::from_bytes(&msg.payload).expect("parse ext payload");
         println!("Peer Metadata Extension ID: {}", msg.ut_metadata());
 
-        println!("magnet_info !!!");
 
         Ok((peer_framed, msg))
     }
@@ -117,7 +116,6 @@ impl MyConnect {
         Ok(())
     }
     pub async fn magnet_info(mag: &MyMagnet) -> Result<()> {
-        println!("magnet_info 0");
         let mut conn = Self::magnet_handshake(mag).await?;
 
         let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
