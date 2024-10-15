@@ -16,9 +16,9 @@ pub async fn magnet_handshake_task(link: &str) -> Result<MyConnect> {
 
     Ok(_ins)
 }
-pub async fn magnet_parse_info(link: &str) -> Result<MyConnect> {
+pub async fn magnet_parse_info(link: &str) -> Result<()> {
     let mag = MyMagnet::from_link(link)?;
-    let _ins = MyConnect::magnet_handshake(&mag).await?;
+    let _ins = MyConnect::magnet_info(&mag).await?;
 
-    Ok(_ins)
+    Ok(())
 }

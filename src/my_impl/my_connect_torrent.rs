@@ -10,7 +10,7 @@ use crate::{
     sha1_u8_20,
 };
 
-use super::{MyConnect, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
+use super::{MyConnect, MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
 
 impl MyConnect {
     pub async fn pre_download<'a>(
@@ -99,9 +99,8 @@ impl MyConnect {
         fs::write(output, all).await.context("write all")?;
         Ok(())
     }
-    pub async fn magnet_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
-        println!("download {:?}", torrent);
-        let mut conn = Self::connect(torrent).await?;
+    pub async fn magnet_info(mag: &MyMagnet) -> Result<()> {
+        let mut conn = Self::magnet_handshake(mag).await?;
         let ext_payload = conn.ext_hs_payload.clone().unwrap();
         let mut peer_framed = conn.pre_download().await?;
 
