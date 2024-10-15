@@ -50,7 +50,9 @@ impl MyExtMetaDataPayload {
             return None;
         }
         let ext_msg_id = b.get(0).unwrap().clone();
-        let dic: ComType = serde_bencode::from_bytes(&b[1..]).expect("parse ext dic");
+        let bb = &b[1..];
+        println!("zz {:?}", String::from_utf8_lossy(bb));
+        let dic: ComType = serde_bencode::from_bytes(bb).expect("parse ext dic");
         let a = Self {
             ext_msg_id,
             dic: dic.0,
