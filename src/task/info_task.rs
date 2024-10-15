@@ -44,16 +44,7 @@ pub fn info_task<T: AsRef<Path>>(file_name: T) -> MyTorrentResult<()> {
     let b = MyTorrent::from_file(file_name);
     // let m = MyPeerMsg::request(1, 2, 3);
     println!("Tracker URL: {}", b.announce);
-    match &b.info.keys {
-        crate::my_impl::MyTorrentInfoKeys::SingleFile { length } => {
-            println!("Length: {:?}", length)
-        }
-        crate::my_impl::MyTorrentInfoKeys::MultiFile { files } => {
-            files
-                .iter()
-                .for_each(|f| println!("Length: {:?}", f.length));
-        }
-    }
+ 
     b.info.print();
 
     Ok(())

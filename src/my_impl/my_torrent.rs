@@ -30,6 +30,19 @@ pub struct MyTorrentInfo {
 }
 impl MyTorrentInfo {
     pub fn print(&self) {
+        
+
+        match &self.keys {
+            crate::my_impl::MyTorrentInfoKeys::SingleFile { length } => {
+                println!("Length: {:?}", length)
+            }
+            crate::my_impl::MyTorrentInfoKeys::MultiFile { files } => {
+                files
+                    .iter()
+                    .for_each(|f| println!("Length: {:?}", f.length));
+            }
+        }
+
         println!("Info Hash: {} ", self.hash());
         println!("Piece Length: {}", self.piece_length);
         println!("Piece Hashes: ");
