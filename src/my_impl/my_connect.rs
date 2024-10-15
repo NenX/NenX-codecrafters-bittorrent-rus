@@ -161,6 +161,8 @@ impl MyConnect {
         output: T,
         piece_i: usize,
     ) -> Result<()> {
+        println!("download piece {:?}", torrent);
+
         let mut c = Self::connect(torrent).await?;
         let peer = &mut c.remote_socket;
 
