@@ -11,7 +11,6 @@ pub mod my_torrent;
 pub mod my_tracker;
 
 pub use my_connect::*;
-pub use my_connect_torrent::*;
 pub use my_extension_handshake::*;
 pub use my_handshake::*;
 pub use my_magnet::*;

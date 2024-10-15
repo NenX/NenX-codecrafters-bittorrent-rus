@@ -23,7 +23,7 @@ impl MyExtensionHandshake {}
 
 #[cfg(test)]
 mod a {
-    use std::hash::Hash;
+    
 
     use super::*;
 

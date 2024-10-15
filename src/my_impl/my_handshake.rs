@@ -1,5 +1,5 @@
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct MyHandShakeData {
     pub length: u8,
     pub bittorrent: [u8; 19],
@@ -19,7 +19,6 @@ impl MyHandShakeData {
         }
     }
     pub fn set_ext_reserved_bit(&mut self) -> &Self {
-
         let item = self.reserved.get_mut(5).unwrap();
         *item = 0x10;
         self

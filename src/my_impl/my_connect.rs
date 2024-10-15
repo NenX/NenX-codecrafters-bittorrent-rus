@@ -1,24 +1,19 @@
-use std::{net::SocketAddrV4, path::Path};
+use std::net::SocketAddrV4;
 
 use anyhow::{Context, Result};
-use futures_util::{SinkExt, StreamExt};
 use tokio::{
-    fs,
     io::{AsyncReadExt, AsyncWriteExt},
     net::TcpStream,
 };
-use tokio_util::codec::Framed;
 
-use crate::{
-    my_impl::{MyHandShakeData, MyPeerMsgTag, MyPiecePayload},
-    sha1_u8_20,
-};
+use crate::my_impl::MyHandShakeData;
 
-use super::{MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
+use super::{MyMagnet, MyTorrent};
 #[derive(Debug)]
 pub struct MyConnect {
     pub local_addr: SocketAddrV4,
     pub remote_socket: TcpStream,
+    pub hs_data: Option<MyHandShakeData>,
 }
 
 impl MyConnect {
@@ -30,6 +25,7 @@ impl MyConnect {
         Self {
             local_addr,
             remote_socket,
+            hs_data: None,
         }
     }
     pub async fn handshake(torrent: &MyTorrent, peer: &str) -> Result<Self> {
@@ -47,7 +43,7 @@ impl MyConnect {
     }
     pub async fn magnet_handshake(mag: &MyMagnet) -> Result<Self> {
         let peer = mag.fetch_peers().await?;
-        let peer = peer.0.get(0).unwrap().to_string();
+        let peer = peer.0.first().unwrap().to_string();
         let info_hash = mag.info_hash()?;
         let mut ins = Self::new(&peer).await;
 
@@ -77,10 +73,9 @@ impl MyConnect {
             .await
             .context(msg2)
             .expect(msg2);
-        (*hs_data).has_ext_reserved_bit();
+        let hd = &*hs_data;
+        hd.has_ext_reserved_bit();
+        self.hs_data = Some(hd.clone());
         Ok(())
     }
 }
-
-#[tokio::test]
-async fn test() {}

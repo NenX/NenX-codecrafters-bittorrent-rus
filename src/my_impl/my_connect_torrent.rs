@@ -1,28 +1,24 @@
-use std::{net::SocketAddrV4, path::Path};
+use std::path::Path;
 
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
-use tokio::{
-    fs,
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpStream,
-};
+use tokio::{fs, net::TcpStream};
 use tokio_util::codec::Framed;
 
 use crate::{
-    my_impl::{MyHandShakeData, MyPeerMsgTag, MyPiecePayload},
+    my_impl::{MyPeerMsgTag, MyPiecePayload},
     sha1_u8_20,
 };
 
-use super::{MyConnect, MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
+use super::{MyConnect, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
 
 impl MyConnect {
- 
- 
     pub async fn pre_download<'a>(
-        socket: &'a mut TcpStream,
-        // peer_framed: &mut Framed<&mut TcpStream, MyPeerMsgFramed>,
+        &'a mut self,
     ) -> Result<Framed<&'a mut TcpStream, MyPeerMsgFramed>> {
+        let socket = &mut self.remote_socket;
+        let hs = &self.hs_data.unwrap();
+        println!("hs {}", hs.has_ext_reserved_bit());
         let mut peer_framed = Framed::new(socket, MyPeerMsgFramed);
 
         let msg = peer_framed
@@ -64,7 +60,7 @@ impl MyConnect {
         let peer = &mut c.remote_socket;
 
         let mut all: Vec<u8> = vec![];
-        let mut peer_framed = Self::pre_download(peer).await?;
+        let mut peer_framed = c.pre_download().await?;
 
         Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
 
@@ -73,11 +69,11 @@ impl MyConnect {
     }
     pub async fn downlaod_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
         println!("download {:?}", torrent);
-        let mut c = Self::connect(torrent).await?;
-        let peer = &mut c.remote_socket;
+        let mut conn = Self::connect(torrent).await?;
+        let peer = &mut conn.remote_socket;
 
         let mut all: Vec<u8> = vec![];
-        let mut peer_framed = Self::pre_download(peer).await?;
+        let mut peer_framed = conn.pre_download().await?;
 
         for (piece_i, _) in torrent.info.pieces.0.iter().enumerate() {
             Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
