@@ -21,7 +21,7 @@ impl MyExtHandshakePayload {
         let mut dic: HashMap<String, usize> = HashMap::new();
         dic.insert("ut_metadata".into(), 2);
         let m = MyExtHandshakePayload {
-            ext_msg_id: 1,
+            ext_msg_id: 0,
             dic: dic.into(),
         };
         m
