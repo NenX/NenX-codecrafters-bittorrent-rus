@@ -1,6 +1,7 @@
 pub mod my_connect;
 pub mod my_connect_torrent;
 pub mod my_extension_handshake;
+pub mod my_extension_metadata;
 pub mod my_handshake;
 pub mod my_magnet;
 pub mod my_message;
@@ -13,6 +14,7 @@ pub mod my_tracker;
 
 pub use my_connect::*;
 pub use my_extension_handshake::*;
+pub use my_extension_metadata::*;
 pub use my_handshake::*;
 pub use my_magnet::*;
 pub use my_message::*;

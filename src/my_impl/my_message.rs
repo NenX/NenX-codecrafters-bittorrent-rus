@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::calc_target_chunk_length;
+use crate::{calc_target_chunk_length, my_impl::MyExtMetaDataPayload};
 
 use super::{MyExtHandshakePayload, MyRequestPayload, MyTorrent};
 const BLOCK_SIZE_MAX: usize = 1 << 14;
@@ -67,8 +67,8 @@ impl MyPeerMsg {
         dic.insert("msg_type".to_string(), msg_type);
         dic.insert("piece".to_string(), piece);
 
-        let a = MyExtHandshakePayload::new(ext_msg_id, dic);
-        println!("qq {:?}",String::from_utf8_lossy(&a.to_bytes().unwrap()));
+        let a = MyExtMetaDataPayload::new(ext_msg_id, dic);
+        println!("qq {:?}", String::from_utf8_lossy(&a.to_bytes().unwrap()));
         Self {
             tag: MyPeerMsgTag::Extendsion,
             payload: a.to_bytes().unwrap(),
