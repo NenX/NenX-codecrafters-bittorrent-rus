@@ -34,7 +34,7 @@ impl MyConnect {
     }
     pub async fn handshake(torrent: &MyTorrent, peer: &str) -> Result<Self> {
         let info_hash = torrent.info.info_hash();
-        let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899");
+        let mut hs_data = MyHandShakeData::new(info_hash, *b"49756936445566778899");
 
         let ins = unsafe { Self::new(peer).await.handshake_interact(&mut hs_data).await };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
@@ -47,7 +47,7 @@ impl MyConnect {
         let info_hash = mag.info_hash()?;
 
         let mut hs_data =
-            MyHandShakeData::new(info_hash, *b"00112233445566778899").set_ext_reserved_bit();
+            MyHandShakeData::new(info_hash, *b"49756936445566778899").set_ext_reserved_bit();
         let ins = unsafe {
             Self::new(&peer)
                 .await
