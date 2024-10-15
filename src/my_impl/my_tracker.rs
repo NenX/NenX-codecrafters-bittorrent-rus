@@ -15,11 +15,11 @@ pub struct MyTrackerRequest {
 #[derive(Debug, Clone, Deserialize)]
 pub struct MyTrackerResponse {
     // pub pubinfo_hash: [u8; 20],
-    // pub interval: isize,
+    pub interval: Option<isize>,
     pub complete: usize,
     pub incomplete: usize,
     #[serde(rename = "min interval")]
-    pub min_interval: usize,
+    pub min_interval: Option<usize>,
     pub peers: MyTrackerPeers,
 }
 #[derive(Debug, Clone)]
