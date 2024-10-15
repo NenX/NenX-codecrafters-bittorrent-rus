@@ -16,7 +16,7 @@ use crate::{
     sha1_u8_20, MyTorrentResult,
 };
 
-use super::{MyPeerMsg, MyPeerMsgFramed, MyTorrent, MyTrackerPeers};
+use super::{MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent, MyTrackerPeers};
 
 #[repr(C)]
 #[derive(Debug)]
@@ -29,13 +29,11 @@ pub struct MyHandShakeData {
 }
 
 impl MyHandShakeData {
-    pub fn new(info_hash: [u8; 20], peer_id: [u8; 20]) -> Self {
-        println!("peer_id {:?} ", &peer_id);
-
+    pub fn new(info_hash: [u8; 20], peer_id: [u8; 20], reserved: [u8; 8]) -> Self {
         Self {
             length: 19,
             bittorrent: *b"BitTorrent protocol",
-            reserved: [0; 8],
+            reserved,
             info_hash,
             peer_id,
         }
@@ -49,69 +47,48 @@ impl MyHandShakeData {
 }
 #[derive(Debug)]
 pub struct MyConnect {
-    pub torrent: MyTorrent,
     pub local_addr: SocketAddrV4,
     pub remote_socket: TcpStream,
 }
 
 impl MyConnect {
-    pub async fn handshake(torrent: &MyTorrent, peer: &str) -> Self {
+    pub async fn new(peer: &str) -> Self {
         let local_addr = peer.parse::<SocketAddrV4>().expect("parse addr");
 
         let remote_socket = TcpStream::connect(local_addr).await.expect("connect");
 
-        let mut ins = Self {
-            torrent: torrent.clone(),
+        Self {
             local_addr,
             remote_socket,
-        };
-
-        let hash = ins.torrent.info.info_hash();
-
-        let mut hs_data = MyHandShakeData::new(hash, *b"00112233445566778899");
-        unsafe {
-            let _ = ins.handshake_interact(&mut hs_data).await;
         }
+    }
+    pub async fn handshake(torrent: &MyTorrent, peer: &str) -> Result<Self> {
+        let info_hash = torrent.info.info_hash();
+        let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899", [0; 8]);
+
+        let ins = unsafe { Self::new(peer).await.handshake_interact(&mut hs_data).await };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
 
         ins
     }
-    pub async fn fetch_peers(b: &MyTorrent) -> MyTorrentResult<MyTrackerPeers> {
-        let len = if let MyTorrentInfoKeys::SingleFile { length } = b.info.keys {
-            length
-        } else {
-            todo!()
-        };
+    pub async fn magnet_handshake(mag: &MyMagnet) -> Result<Self> {
+        let a = mag.fetch_peers().await?;
+        let peer = a.0.get(0).unwrap().to_string();
+        let info_hash = mag.info_hash()?;
 
-        let request_params = MyTrackerRequest {
-            // pubinfo_hash: hx,
-            peer_id: String::from("00112233445566778899"),
-            port: 6881,
-            uploaded: 0,
-            downloaded: 0,
-            left: len,
-            compact: 1,
-        };
-        let request_params = serde_urlencoded::to_string(&request_params).context("url encode")?;
+        let mut reserved = [0; 8];
+        let item = reserved.get_mut(2).unwrap();
+        *item = 16;
 
-        let request_params = format!(
-            "{}?info_hash={}&{}",
-            b.announce,
-            b.info.urlencode(),
-            request_params
-        );
-        println!("request_params {}", request_params);
-        let res_bytes = reqwest::get(request_params).await?.bytes().await?;
-        let res: MyTrackerResponse = serde_bencode::from_bytes(&res_bytes)?;
-        res.peers.print();
+        let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899", reserved);
 
-        Ok(res.peers)
+        let ins = unsafe { Self::new(&peer).await.handshake_interact(&mut hs_data).await };
+        println!("Peer ID: {}", hex::encode(hs_data.peer_id));
+
+        ins
     }
 
-    async unsafe fn handshake_interact(
-        &mut self,
-        hs_data: *mut MyHandShakeData,
-    ) -> MyTorrentResult<()> {
+    async unsafe fn handshake_interact(mut self, hs_data: *mut MyHandShakeData) -> Result<Self> {
         let handshake_bytes = hs_data as *mut [u8; std::mem::size_of::<MyHandShakeData>()];
         // Safety: Handshake is a POD with repr(c)
         let handshake_bytes: &mut [u8; std::mem::size_of::<MyHandShakeData>()] =
@@ -119,7 +96,7 @@ impl MyConnect {
 
         self.remote_socket.write_all(handshake_bytes).await?;
         self.remote_socket.read_exact(handshake_bytes).await?;
-        Ok(())
+        Ok(self)
     }
 
     pub async fn pre_download<'a>(
@@ -150,9 +127,9 @@ impl MyConnect {
     }
     pub async fn connect(torrent: &MyTorrent) -> Result<MyConnect> {
         println!("downloadpiece_task");
-        let peers = Self::fetch_peers(torrent).await?;
+        let peers = torrent.fetch_peers().await?;
         let first_one = &peers.0.first().unwrap().to_string();
-        let c = Self::handshake(torrent, first_one).await;
+        let c = Self::handshake(torrent, first_one).await?;
 
         Ok(c)
     }

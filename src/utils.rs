@@ -139,7 +139,6 @@ pub fn pieces_hash(v: &Value) -> MyTorrentResult<Vec<String>> {
     Ok(a)
 }
 pub fn calc_target_chunk_length(total_len: usize, chunk_len: usize, n: usize, idx: usize) -> usize {
-
     if n - 1 == idx {
         let md = total_len % chunk_len;
         if md == 0 {
@@ -154,4 +153,15 @@ pub fn calc_target_chunk_length(total_len: usize, chunk_len: usize, n: usize, id
 pub fn sha1_u8_20<T: AsRef<[u8]>>(data: T) -> [u8; 20] {
     let out = Sha1::digest(data);
     out.into()
+}
+
+pub fn info_hash_encode(bytes: [u8; 20]) -> String {
+    let mut s = String::with_capacity(bytes.len() * 3);
+
+    bytes.iter().for_each(|b| {
+        s.push('%');
+        s.push_str(&hex::encode([*b]));
+    });
+
+    s
 }

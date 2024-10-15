@@ -23,6 +23,7 @@ pub enum Command {
         torrent: PathBuf,
         peer: String,
     },
+
     DownloadPiece {
         #[arg(short)]
         output: PathBuf,
@@ -30,6 +31,9 @@ pub enum Command {
         piece: usize,
     },
     MagnetParse {
+        link: String,
+    },
+    MagnetHandshake {
         link: String,
     },
     Download {

@@ -1,10 +1,15 @@
 use std::{fs, path::Path};
 
-use anyhow::Context;
+use anyhow::{Context, Result};
 use serde::{de::Visitor, Deserialize, Serialize};
 use sha1::{Digest, Sha1};
 
+use crate::{
+    info_hash_encode,
+    my_impl::{MyTrackerRequest, MyTrackerResponse},
+};
 
+use super::MyTrackerPeers;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct MyTorrent {
@@ -29,7 +34,7 @@ impl MyTorrentInfo {
 
         let h = Sha1::digest(info_encoded);
         // let h = self.info_hash();
-        
+
         hex::encode(h)
     }
     pub fn info_hash(&self) -> [u8; 20] {
@@ -37,20 +42,7 @@ impl MyTorrentInfo {
             serde_bencode::to_bytes(self).expect("re-encode info section should be fine");
         let mut hasher = Sha1::new();
         hasher.update(&info_encoded);
-        hasher
-            .finalize()
-            .into()
-    }
-    pub fn urlencode(&self) -> String {
-        let bytes = self.info_hash();
-        let mut s = String::with_capacity(bytes.len() * 3);
-
-        bytes.iter().for_each(|b| {
-            s.push('%');
-            s.push_str(&hex::encode([*b]));
-        });
-
-        s
+        hasher.finalize().into()
     }
 }
 #[derive(Debug, Clone)]
@@ -99,6 +91,38 @@ impl<'de> Deserialize<'de> for MyTorrentPieces {
     }
 }
 impl MyTorrent {
+    pub async fn fetch_peers(&self) -> Result<MyTrackerPeers> {
+        let len = if let MyTorrentInfoKeys::SingleFile { length } = self.info.keys {
+            length
+        } else {
+            todo!()
+        };
+
+        let request_params = MyTrackerRequest {
+            // pubinfo_hash: hx,
+            peer_id: String::from("00112233445566778899"),
+            port: 6881,
+            uploaded: 0,
+            downloaded: 0,
+            left: len,
+            compact: 1,
+        };
+        let request_params = serde_urlencoded::to_string(&request_params).context("url encode")?;
+
+        let request_params = format!(
+            "{}?info_hash={}&{}",
+            self.announce,
+            info_hash_encode(self.info.info_hash()),
+            request_params
+        );
+        println!("request_params {}", request_params);
+        let res_bytes = reqwest::get(request_params).await?.bytes().await?;
+        let res: MyTrackerResponse = serde_bencode::from_bytes(&res_bytes)?;
+        res.peers.print();
+
+        Ok(res.peers)
+    }
+
     pub fn from_file<T: AsRef<Path>>(file: T) -> Self {
         let b = fs::read(file).expect("read file");
         serde_bencode::from_bytes(&b).context("context").expect("?")
@@ -109,7 +133,6 @@ impl MyTorrent {
             MyTorrentInfoKeys::MultiFile { files } => None,
         }
     }
- 
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
