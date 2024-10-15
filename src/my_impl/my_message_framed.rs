@@ -5,15 +5,17 @@ use anyhow::Result;
 use bytes::Buf;
 use bytes::BufMut;
 use bytes::BytesMut;
+use tokio::net::TcpStream;
 use tokio_util::codec::Decoder;
 use tokio_util::codec::Encoder;
+use tokio_util::codec::Framed;
 
 use super::MyPeerMsg;
 use super::MyPeerMsgTag;
 
 const LEN_BYTE: usize = u32::BITS as usize / 8;
 const MAX: usize = u16::MAX as usize;
-
+pub type MyFramed<'a> = Framed<&'a mut TcpStream, MyPeerMsgFramed>;
 pub struct MyPeerMsgFramed;
 
 impl Decoder for MyPeerMsgFramed {

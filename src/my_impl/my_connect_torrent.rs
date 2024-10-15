@@ -13,11 +13,8 @@ use crate::{
 use super::{MyConnect, MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
 
 impl MyConnect {
-    pub async fn pre_download<'a>(
-        &'a mut self,
-    ) -> Result<Framed<&'a mut TcpStream, MyPeerMsgFramed>> {
+    pub async fn pre_download(&mut self) -> Result<Framed<&mut TcpStream, MyPeerMsgFramed>> {
         let socket = &mut self.remote_socket;
-        let hs = &self.hs_data.unwrap();
         let mut peer_framed = Framed::new(socket, MyPeerMsgFramed);
 
         let msg = peer_framed
@@ -27,37 +24,56 @@ impl MyConnect {
             .context("peer next")?;
         assert_eq!(msg.tag, MyPeerMsgTag::Bitfield);
 
-        if hs.has_ext_reserved_bit() {
-            peer_framed
-                .send(MyPeerMsg::ext_handshake())
-                .await
-                .context("peer send")?;
+        peer_framed
+            .send(MyPeerMsg::interested())
+            .await
+            .context("peer send")?;
 
-            let msg = peer_framed
-                .next()
-                .await
-                .expect("peer next")
-                .context("peer next")?;
-            assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
-            let msg = MyExtHandshakePayload::from_bytes(&msg.payload).expect("parse ext payload");
-            println!("Peer Metadata Extension ID: {}", msg.ut_metadata());
-            self.ext_hs_payload = Some(msg);
-            println!("magnet_info !!!")
-        } else {
-            peer_framed
-                .send(MyPeerMsg::interested())
-                .await
-                .context("peer send")?;
-
-            let msg = peer_framed
-                .next()
-                .await
-                .expect("peer next")
-                .context("peer next")?;
-            assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
-        }
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
 
         Ok(peer_framed)
+    }
+    pub async fn magnet_pre_download(
+        &mut self,
+    ) -> Result<(
+        Framed<&mut TcpStream, MyPeerMsgFramed>,
+        MyExtHandshakePayload,
+    )> {
+        let socket = &mut self.remote_socket;
+        let hs = &self.hs_data.unwrap();
+        assert!(hs.has_ext_reserved_bit());
+
+        let mut peer_framed = Framed::new(socket, MyPeerMsgFramed);
+
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Bitfield);
+
+        peer_framed
+            .send(MyPeerMsg::ext_handshake())
+            .await
+            .context("peer send")?;
+
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
+        let msg = MyExtHandshakePayload::from_bytes(&msg.payload).expect("parse ext payload");
+        println!("Peer Metadata Extension ID: {}", msg.ut_metadata());
+
+        println!("magnet_info !!!");
+
+        Ok((peer_framed, msg))
     }
 
     pub async fn connect(torrent: &MyTorrent) -> Result<MyConnect> {
@@ -103,14 +119,11 @@ impl MyConnect {
     pub async fn magnet_info(mag: &MyMagnet) -> Result<()> {
         println!("magnet_info 0");
         let mut conn = Self::magnet_handshake(mag).await?;
-        let ext_payload = conn.ext_hs_payload.clone().unwrap();
-        println!("magnet_info 1 {:?}", ext_payload);
 
-        let mut peer_framed = conn.pre_download().await?;
-        println!("magnet_info 2 {:?}", ext_payload);
+        let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
 
         peer_framed
-            .send(MyPeerMsg::ext_meta_request(ext_payload.ut_metadata(), 0, 0))
+            .send(MyPeerMsg::ext_meta_request(payload.ut_metadata(), 0, 0))
             .await
             .context("peer send")?;
 
