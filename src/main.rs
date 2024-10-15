@@ -28,7 +28,7 @@ async fn main() -> anyhow::Result<()> {
             piece,
         } => downloadpiece_task(torrent, output, piece).await?,
         Command::Download { output, torrent } => download_task(torrent, output).await?,
-        Command::MagnetParse { link } => magnet_parse_task(&link),
+        Command::MagnetParse { link } => magnet_parse_task(&link)?,
     }
     Ok(())
 }
