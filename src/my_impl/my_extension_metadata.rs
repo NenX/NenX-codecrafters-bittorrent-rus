@@ -16,6 +16,7 @@ pub struct MyExtMetaDataPayload {
 pub struct MyExtMetaDataPayloadDic {
     pub msg_type: usize,
     pub piece: usize,
+    // size of MyTorrentInfo
     pub total_size: Option<usize>,
 }
 impl MyExtMetaDataPayload {
@@ -48,21 +49,29 @@ impl MyExtMetaDataPayload {
         if 0 == b.len() {
             return None;
         }
-        let ext_msg_id = b.get(0).unwrap().clone();
+        let ext_msg_id: u8 = b.get(0).unwrap().clone();
         let dic: MyExtMetaDataPayloadDic =
             serde_bencode::from_bytes(&b[1..]).expect("parse ext dic");
-        println!(
-            "zzz {} zzz {} zzz {:?}",
-            dic.total_size.expect("total size"),
-            b.len(),
-            String::from_utf8_lossy(&b)
-        );
+
+        if let Some(total_size) = dic.total_size {
+            let info: MyTorrentInfo =
+                serde_bencode::from_bytes(&b[(b.len() - total_size)..]).expect("parse ext dic");
+
+            let a = Self {
+                ext_msg_id,
+                dic,
+                info: Some(info),
+            };
+            println!("zz {:?}",a);
+            return Some(a);
+        }
+
         let a = Self {
             ext_msg_id,
             dic,
             info: None,
         };
-        Some(a)
+        return Some(a);
     }
 }
 
