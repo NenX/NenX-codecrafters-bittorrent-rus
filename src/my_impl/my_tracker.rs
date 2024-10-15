@@ -15,7 +15,7 @@ pub struct MyTrackerRequest {
 #[derive(Debug, Clone, Deserialize)]
 pub struct MyTrackerResponse {
     // pub pubinfo_hash: [u8; 20],
-    pub interval: isize,
+    // pub interval: isize,
     pub complete: usize,
     pub incomplete: usize,
     #[serde(rename = "min interval")]
