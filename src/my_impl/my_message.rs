@@ -1,6 +1,8 @@
+use std::collections::HashMap;
+
 use crate::calc_target_chunk_length;
 
-use super::{MyRequestPayload, MyTorrent};
+use super::{MyExtHandshakePayload, MyRequestPayload, MyTorrent};
 const BLOCK_SIZE_MAX: usize = 1 << 14;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -15,6 +17,7 @@ pub enum MyPeerMsgTag {
     Request = 6,
     Piece = 7,
     Cancel = 8,
+    Extendsion = 20,
 }
 impl TryFrom<u8> for MyPeerMsgTag {
     type Error = std::io::Error;
@@ -51,6 +54,13 @@ impl From<MyRequestPayload> for MyPeerMsg {
     }
 }
 impl MyPeerMsg {
+    pub fn ext_handshake() -> Self {
+        let a = MyExtHandshakePayload::default();
+        Self {
+            tag: MyPeerMsgTag::Extendsion,
+            payload: a.to_bytes().unwrap(),
+        }
+    }
     pub fn interested() -> Self {
         Self {
             tag: MyPeerMsgTag::Interested,
@@ -73,8 +83,6 @@ impl MyPeerMsg {
         let block_n = (piece_size + BLOCK_SIZE_MAX - 1) / BLOCK_SIZE_MAX;
 
         let it = 0..=block_n - 1;
-
-        
 
         it.map(move |block_i| {
             let block_size = calc_target_chunk_length(piece_size, BLOCK_SIZE_MAX, block_n, block_i);

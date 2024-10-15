@@ -2,7 +2,7 @@ use std::path::Path;
 
 use anyhow::{Context, Result};
 use futures_util::{SinkExt, StreamExt};
-use tokio::{fs, net::TcpStream};
+use tokio::{fs, io::AsyncWriteExt, net::TcpStream};
 use tokio_util::codec::Framed;
 
 use crate::{
@@ -18,7 +18,6 @@ impl MyConnect {
     ) -> Result<Framed<&'a mut TcpStream, MyPeerMsgFramed>> {
         let socket = &mut self.remote_socket;
         let hs = &self.hs_data.unwrap();
-        println!("hs {}", hs.has_ext_reserved_bit());
         let mut peer_framed = Framed::new(socket, MyPeerMsgFramed);
 
         let msg = peer_framed
@@ -28,17 +27,25 @@ impl MyConnect {
             .context("peer next")?;
         assert_eq!(msg.tag, MyPeerMsgTag::Bitfield);
 
-        peer_framed
-            .send(MyPeerMsg::interested())
-            .await
-            .context("peer send")?;
+        if hs.has_ext_reserved_bit() {
+            peer_framed
+                .send(MyPeerMsg::ext_handshake())
+                .await
+                .context("peer send")?;
+        } else {
+            peer_framed
+                .send(MyPeerMsg::interested())
+                .await
+                .context("peer send")?;
 
-        let msg = peer_framed
-            .next()
-            .await
-            .expect("peer next")
-            .context("peer next")?;
-        assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
+            let msg = peer_framed
+                .next()
+                .await
+                .expect("peer next")
+                .context("peer next")?;
+            assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
+        }
+
         Ok(peer_framed)
     }
     pub async fn connect(torrent: &MyTorrent) -> Result<MyConnect> {

@@ -75,7 +75,6 @@ impl MyConnect {
             .context(msg2)
             .expect(msg2);
         let hd = &*hs_data;
-        hd.has_ext_reserved_bit();
         self.hs_data = Some(hd.clone());
         Ok(())
     }
