@@ -64,8 +64,8 @@ impl MyPeerMsg {
     }
     pub fn ext_meta_request(ext_msg_id: u8, msg_type: usize, piece: usize) -> Self {
         let mut dic = HashMap::new();
-        dic.insert("msg_type".into(), msg_type);
-        dic.insert("piece".into(), piece);
+        dic.insert("msg_type".to_string(), msg_type);
+        dic.insert("piece".to_string(), piece);
 
         let a = MyExtHandshakePayload::new(ext_msg_id, dic);
         println!("qq {:?}",String::from_utf8_lossy(&a.to_bytes().unwrap()));
