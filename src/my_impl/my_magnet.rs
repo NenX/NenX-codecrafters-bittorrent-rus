@@ -83,13 +83,14 @@ impl MyMagnet {
         };
         let request_params = serde_urlencoded::to_string(&request_params).context("url encode")?;
 
-        let request_params = format!(
+        let url = format!(
             "{}?info_hash={}&{}",
             self.tr,
             info_hash_encode(self.info_hash()?),
             request_params
         );
-        let res_bytes = reqwest::get(request_params).await?.bytes().await?;
+        println!("url {url}");
+        let res_bytes = reqwest::get(url).await?.bytes().await?;
         let res: MyTrackerResponse = serde_bencode::from_bytes(&res_bytes)?;
         // res.peers.print();
 
