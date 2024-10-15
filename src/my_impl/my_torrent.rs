@@ -115,7 +115,6 @@ impl MyTorrent {
             info_hash_encode(self.info.info_hash()),
             request_params
         );
-        println!("request_params {}", request_params);
         let res_bytes = reqwest::get(request_params).await?.bytes().await?;
         let res: MyTrackerResponse = serde_bencode::from_bytes(&res_bytes)?;
         res.peers.print();
