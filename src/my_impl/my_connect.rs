@@ -10,41 +10,11 @@ use tokio::{
 use tokio_util::codec::Framed;
 
 use crate::{
-    my_impl::{
-        MyPeerMsgTag, MyPiecePayload, MyTorrentInfoKeys, MyTrackerRequest, MyTrackerResponse,
-    },
-    sha1_u8_20, MyTorrentResult,
+    my_impl::{MyHandShakeData, MyPeerMsgTag, MyPiecePayload},
+    sha1_u8_20,
 };
 
-use super::{MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent, MyTrackerPeers};
-
-#[repr(C)]
-#[derive(Debug)]
-pub struct MyHandShakeData {
-    pub length: u8,
-    pub bittorrent: [u8; 19],
-    pub reserved: [u8; 8],
-    pub info_hash: [u8; 20],
-    pub peer_id: [u8; 20],
-}
-
-impl MyHandShakeData {
-    pub fn new(info_hash: [u8; 20], peer_id: [u8; 20], reserved: [u8; 8]) -> Self {
-        Self {
-            length: 19,
-            bittorrent: *b"BitTorrent protocol",
-            reserved,
-            info_hash,
-            peer_id,
-        }
-    }
-    pub fn as_bytes_mut(&mut self) -> &mut [u8] {
-        let bytes = self as *mut Self as *mut [u8; std::mem::size_of::<Self>()];
-        // Safety: Handshake is a POD with repr(c)
-        let bytes: &mut [u8; std::mem::size_of::<Self>()] = unsafe { &mut *bytes };
-        bytes
-    }
-}
+use super::{MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
 #[derive(Debug)]
 pub struct MyConnect {
     pub local_addr: SocketAddrV4,
@@ -64,7 +34,7 @@ impl MyConnect {
     }
     pub async fn handshake(torrent: &MyTorrent, peer: &str) -> Result<Self> {
         let info_hash = torrent.info.info_hash();
-        let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899", [0; 8]);
+        let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899");
 
         let ins = unsafe { Self::new(peer).await.handshake_interact(&mut hs_data).await };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
@@ -72,16 +42,12 @@ impl MyConnect {
         ins
     }
     pub async fn magnet_handshake(mag: &MyMagnet) -> Result<Self> {
-
         let a = mag.fetch_peers().await?;
         let peer = a.0.get(0).unwrap().to_string();
         let info_hash = mag.info_hash()?;
 
-        let mut reserved = [0; 8];
-        let item = reserved.get_mut(5).unwrap();
-        *item = 16;
-
-        let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899", reserved);
+        let mut hs_data =
+            MyHandShakeData::new(info_hash, *b"00112233445566778899").set_ext_reserved_bit();
         let ins = unsafe {
             Self::new(&peer)
                 .await
@@ -110,6 +76,7 @@ impl MyConnect {
             .await
             .context(msg2)
             .expect(msg2);
+        (*hs_data).has_ext_reserved_bit();
         Ok(self)
     }
 

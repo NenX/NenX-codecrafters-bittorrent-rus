@@ -6,6 +6,7 @@ pub mod my_message_piece;
 pub mod my_message_request;
 pub mod my_torrent;
 pub mod my_tracker;
+pub mod my_handshake;
 
 pub use my_connect::*;
 pub use my_magnet::*;
@@ -15,3 +16,4 @@ pub use my_message_piece::*;
 pub use my_message_request::*;
 pub use my_torrent::*;
 pub use my_tracker::*;
+pub use my_handshake::*;
