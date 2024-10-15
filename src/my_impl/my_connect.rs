@@ -35,37 +35,38 @@ impl MyConnect {
     pub async fn handshake(torrent: &MyTorrent, peer: &str) -> Result<Self> {
         let info_hash = torrent.info.info_hash();
         let mut hs_data = MyHandShakeData::new(info_hash, *b"49756936445566778899");
-
-        let ins = unsafe { Self::new(peer).await.handshake_interact(&mut hs_data).await };
+        let mut ins = Self::new(peer).await;
+        unsafe { ins.handshake_interact(&mut hs_data).await };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
 
-        ins
+        Ok(ins)
     }
     pub async fn magnet_handshake(mag: &MyMagnet) -> Result<Self> {
-        let a = mag.fetch_peers().await?;
-        let peer = a.0.get(0).unwrap().to_string();
+        let peer = mag.fetch_peers().await?;
+        let peer = peer.0.get(0).unwrap().to_string();
         let info_hash = mag.info_hash()?;
+        let mut ins = Self::new(&peer).await;
 
-        let mut hs_data =
-            MyHandShakeData::new(info_hash, *b"49756936445566778899").set_ext_reserved_bit();
-        let ins = unsafe {
-            Self::new(&peer)
-                .await
-                .handshake_interact(&mut hs_data)
-                .await
-        };
+        let mut hs_data = MyHandShakeData::new(info_hash, *b"49756936445566778899");
+        hs_data.set_ext_reserved_bit();
+        println!("/?? {:?}",&hs_data.reserved);
+        unsafe { ins.handshake_interact(&mut hs_data).await.unwrap() };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
 
-        ins
+        Ok(ins)
     }
 
-    async unsafe fn handshake_interact(mut self, hs_data: *mut MyHandShakeData) -> Result<Self> {
+    async unsafe fn handshake_interact(&mut self, hs_data: *mut MyHandShakeData) -> Result<()> {
         let handshake_bytes = hs_data as *mut [u8; std::mem::size_of::<MyHandShakeData>()];
         // Safety: Handshake is a POD with repr(c)
         let handshake_bytes: &mut [u8; std::mem::size_of::<MyHandShakeData>()] =
             unsafe { &mut *handshake_bytes };
         let msg1 = "handshake_interact write";
         let msg2 = "handshake_interact read";
+        println!(
+            "has_ext_reserved_bit  {:?}",
+            (*hs_data).has_ext_reserved_bit()
+        );
         self.remote_socket
             .write_all(handshake_bytes)
             .await
@@ -77,7 +78,7 @@ impl MyConnect {
             .context(msg2)
             .expect(msg2);
         (*hs_data).has_ext_reserved_bit();
-        Ok(self)
+        Ok(())
     }
 
     pub async fn pre_download<'a>(

@@ -18,10 +18,9 @@ impl MyHandShakeData {
             peer_id,
         }
     }
-    pub fn set_ext_reserved_bit(self) -> Self {
-        let mut reserved = self.reserved;
+    pub fn set_ext_reserved_bit(&mut self) -> &Self {
 
-        let item = reserved.get_mut(5).unwrap();
+        let item = self.reserved.get_mut(5).unwrap();
         *item = 0x10;
         self
     }
