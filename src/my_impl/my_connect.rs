@@ -51,6 +51,7 @@ impl MyConnect {
         hs_data.set_ext_reserved_bit();
         unsafe { ins.handshake_interact(&mut hs_data).await.unwrap() };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
+        ins.pre_download().await?;
 
         Ok(ins)
     }

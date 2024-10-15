@@ -56,11 +56,10 @@ impl MyConnect {
     ) -> Result<()> {
         println!("download piece {:?}", torrent);
 
-        let mut c = Self::connect(torrent).await?;
-        let peer = &mut c.remote_socket;
+        let mut conn = Self::connect(torrent).await?;
 
         let mut all: Vec<u8> = vec![];
-        let mut peer_framed = c.pre_download().await?;
+        let mut peer_framed = conn.pre_download().await?;
 
         Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
 
@@ -70,7 +69,6 @@ impl MyConnect {
     pub async fn downlaod_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
         println!("download {:?}", torrent);
         let mut conn = Self::connect(torrent).await?;
-        let peer = &mut conn.remote_socket;
 
         let mut all: Vec<u8> = vec![];
         let mut peer_framed = conn.pre_download().await?;
