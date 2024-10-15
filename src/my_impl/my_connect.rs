@@ -82,7 +82,12 @@ impl MyConnect {
 
         let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899", reserved);
 
-        let ins = unsafe { Self::new(&peer).await.handshake_interact(&mut hs_data).await };
+        let ins = unsafe {
+            Self::new(&peer)
+                .await
+                .handshake_interact(&mut hs_data)
+                .await
+        };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
 
         ins
@@ -93,9 +98,18 @@ impl MyConnect {
         // Safety: Handshake is a POD with repr(c)
         let handshake_bytes: &mut [u8; std::mem::size_of::<MyHandShakeData>()] =
             unsafe { &mut *handshake_bytes };
-
-        self.remote_socket.write_all(handshake_bytes).await?;
-        self.remote_socket.read_exact(handshake_bytes).await?;
+        let msg1 = "handshake_interact write";
+        let msg2 = "handshake_interact read";
+        self.remote_socket
+            .write_all(handshake_bytes)
+            .await
+            .context(msg1)
+            .expect(msg1);
+        self.remote_socket
+            .read_exact(handshake_bytes)
+            .await
+            .context(msg2)
+            .expect(msg2);
         Ok(self)
     }
 
