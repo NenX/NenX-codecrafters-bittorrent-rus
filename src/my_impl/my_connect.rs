@@ -49,7 +49,6 @@ impl MyConnect {
 
         let mut hs_data = MyHandShakeData::new(info_hash, *b"49756936445566778899");
         hs_data.set_ext_reserved_bit();
-        println!("/?? {:?}",&hs_data.reserved);
         unsafe { ins.handshake_interact(&mut hs_data).await.unwrap() };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
 
