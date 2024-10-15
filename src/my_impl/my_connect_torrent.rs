@@ -137,6 +137,7 @@ impl MyConnect {
         a.info.expect("info").print();
         Ok(())
     }
+    
     pub async fn downlaod_piece_impl(
         torrent: &MyTorrent,
         piece_i: usize,
