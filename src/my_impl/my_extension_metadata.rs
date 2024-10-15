@@ -4,7 +4,8 @@ use anyhow::Result;
 use serde::{Deserialize, Serialize};
 
 use super::MyTorrentInfo;
-
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ComType(MyExtMetaDataPayloadDic, MyTorrentInfo);
 #[derive(Debug, Clone)]
 
 pub struct MyExtMetaDataPayload {
@@ -49,8 +50,7 @@ impl MyExtMetaDataPayload {
             return None;
         }
         let ext_msg_id = b.get(0).unwrap().clone();
-        let dic: (MyExtMetaDataPayloadDic, MyTorrentInfo) =
-            serde_bencode::from_bytes(&b[1..]).expect("parse ext dic");
+        let dic: ComType = serde_bencode::from_bytes(&b[1..]).expect("parse ext dic");
         let a = Self {
             ext_msg_id,
             dic: dic.0,
