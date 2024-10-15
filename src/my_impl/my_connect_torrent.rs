@@ -127,6 +127,13 @@ impl MyConnect {
             .await
             .context("peer send")?;
 
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
+        println!("rr {:?}",msg);
         Ok(())
     }
     pub async fn downlaod_piece_impl(

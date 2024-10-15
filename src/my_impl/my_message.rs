@@ -63,11 +63,7 @@ impl MyPeerMsg {
         }
     }
     pub fn ext_meta_request(ext_msg_id: u8, msg_type: usize, piece: usize) -> Self {
-        let mut dic = HashMap::new();
-        dic.insert("msg_type".to_string(), msg_type);
-        dic.insert("piece".to_string(), piece);
-
-        let a = MyExtMetaDataPayload::new(ext_msg_id, dic);
+        let a = MyExtMetaDataPayload::new(ext_msg_id, msg_type, piece);
         println!("qq {:?}", String::from_utf8_lossy(&a.to_bytes().unwrap()));
         Self {
             tag: MyPeerMsgTag::Extendsion,
