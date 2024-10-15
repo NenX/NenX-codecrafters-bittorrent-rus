@@ -33,6 +33,7 @@ impl TryFrom<u8> for MyPeerMsgTag {
             6 => Self::Request,
             7 => Self::Piece,
             8 => Self::Cancel,
+            20 => Self::Extendsion,
             _ => return Err(std::io::ErrorKind::InvalidData.into()),
         };
         Ok(tag)
