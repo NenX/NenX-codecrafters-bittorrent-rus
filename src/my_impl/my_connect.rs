@@ -63,10 +63,7 @@ impl MyConnect {
             unsafe { &mut *handshake_bytes };
         let msg1 = "handshake_interact write";
         let msg2 = "handshake_interact read";
-        println!(
-            "has_ext_reserved_bit  {:?}",
-            (*hs_data).has_ext_reserved_bit()
-        );
+    
         self.remote_socket
             .write_all(handshake_bytes)
             .await
