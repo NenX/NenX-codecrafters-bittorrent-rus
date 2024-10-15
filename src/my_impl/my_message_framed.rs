@@ -43,7 +43,7 @@ impl Decoder for MyPeerMsgFramed {
         }
 
         let tag = MyPeerMsgTag::try_from(src[LEN_BYTE])
-            .context("into tag")
+            .context(format!("into tag {:?}", src))
             .unwrap();
 
         let payload = if len == 1 {
