@@ -68,7 +68,7 @@ impl MyPeerMsg {
         dic.insert("piece".into(), piece);
 
         let a = MyExtHandshakePayload::new(ext_msg_id, dic);
-        println!("qq {:?}",a.to_bytes().unwrap());
+        println!("qq {:?}",a);
         Self {
             tag: MyPeerMsgTag::Extendsion,
             payload: a.to_bytes().unwrap(),
