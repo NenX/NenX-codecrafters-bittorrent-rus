@@ -40,7 +40,12 @@ impl MyConnect {
                 .context("peer next")?;
             assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
             let msg = MyExtHandshakePayload::from_bytes(&msg.payload).expect("parse ext payload");
-            println!("Peer Metadata Extension ID: {}", msg.ut_metadata())
+            println!("Peer Metadata Extension ID: {}", msg.ut_metadata());
+
+            peer_framed
+                .send(MyPeerMsg::ext_meta_request(msg.ut_metadata(), 0, 0))
+                .await
+                .context("peer send")?;
         } else {
             peer_framed
                 .send(MyPeerMsg::interested())

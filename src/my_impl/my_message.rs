@@ -62,6 +62,17 @@ impl MyPeerMsg {
             payload: a.to_bytes().unwrap(),
         }
     }
+    pub fn ext_meta_request(ext_msg_id: u8, msg_type: usize, piece: usize) -> Self {
+        let mut dic = HashMap::new();
+        dic.insert("msg_type".into(), msg_type);
+        dic.insert("piece".into(), piece);
+
+        let a = MyExtHandshakePayload::new(ext_msg_id, dic);
+        Self {
+            tag: MyPeerMsgTag::Extendsion,
+            payload: a.to_bytes().unwrap(),
+        }
+    }
     pub fn interested() -> Self {
         Self {
             tag: MyPeerMsgTag::Interested,
