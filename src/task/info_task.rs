@@ -4,8 +4,9 @@ use serde_bencode::value::Value;
 use sha1::{Digest, Sha1};
 
 use crate::{
-    dict_get, dict_get_as, display_value, my_impl::MyTorrent, pieces_hash, value_as_bytes,
-    value_as_int, MyBEncodedBuf, MyTorrentResult,
+    dict_get, dict_get_as, display_value,
+    my_impl::{MyPeerMsg, MyRequestPayload, MyTorrent},
+    pieces_hash, value_as_bytes, value_as_int, MyBEncodedBuf, MyTorrentResult,
 };
 
 // Usage: 70edcac2611a8829ebf467a6849f5d8408d9d8f4
@@ -39,10 +40,11 @@ pub fn info_raw(file_name: &str) -> MyTorrentResult<()> {
     println!("Piece Hashes: \n{}", pieces_hash(&info_value)?.join("\n"));
     Ok(())
 }
+
 pub fn info_task<T: AsRef<Path>>(file_name: T) -> MyTorrentResult<()> {
     // info_raw(file_name)?;
     let b = MyTorrent::from_file(file_name);
-
+    // let m = MyPeerMsg::request(1, 2, 3);
     println!("Tracker URL: {}", b.announce);
     match &b.info.keys {
         crate::my_impl::MyTorrentInfoKeys::SingleFile { length } => {

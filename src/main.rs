@@ -1,7 +1,7 @@
 use bittorrent_starter_rust::{
     commands::{Args, Command},
-    decode_task, download_task, downloadpiece_task, handshake_task, info_task, peers_task,
-    MyTorrentResult,
+    decode_task, download_task, downloadpiece_task, handshake_task, info_task, magnet_parse_task,
+    peers_task,
 };
 use clap::Parser;
 
@@ -28,27 +28,9 @@ async fn main() -> anyhow::Result<()> {
             piece,
         } => downloadpiece_task(torrent, output, piece).await?,
         Command::Download { output, torrent } => download_task(torrent, output).await?,
+        Command::MagnetParse { link } => magnet_parse_task(&link),
     }
     Ok(())
 }
 
-#[test]
-fn ta() -> MyTorrentResult<()> {
-    use bytes::{BufMut, BytesMut};
 
-    let mut buf = BytesMut::with_capacity(128);
-    buf.put(&[0; 64][..]);
-
-    let ptr = buf.as_ptr();
-    let other = buf.split();
-
-    assert!(buf.is_empty());
-    assert_eq!(buf.capacity(), 64);
-
-    drop(other);
-    buf.reserve(128);
-
-    assert_eq!(buf.capacity(), 128);
-    assert_eq!(buf.as_ptr(), ptr);
-    Ok(())
-}

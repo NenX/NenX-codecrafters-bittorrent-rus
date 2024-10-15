@@ -29,6 +29,9 @@ pub enum Command {
         torrent: PathBuf,
         piece: usize,
     },
+    MagnetParse {
+        link: String,
+    },
     Download {
         #[arg(short)]
         output: PathBuf,

@@ -196,9 +196,9 @@ impl MyConnect {
         let piece_hash = torrent.info.pieces.0.get(piece_i).unwrap();
 
         let reqs = MyPeerMsg::request_iter(piece_i, torrent);
-
         for m in reqs {
-            println!("in iter reqs {:?}", m);
+            // let m = MyPeerMsg::request(index, begin, length);
+
             peer_framed.send(m).await.context("send")?;
 
             let msg = peer_framed
@@ -209,12 +209,12 @@ impl MyConnect {
 
             assert_eq!(msg.tag, MyPeerMsgTag::Piece);
             assert!(!msg.payload.is_empty());
-
             let payload = MyPiecePayload::ref_from_bytes(&msg.payload).expect("piece payload");
 
             piece_v.extend_from_slice(&payload.block);
         }
 
+        println!("request piece --> len {}", piece_v.len());
         let hash = sha1_u8_20(&piece_v);
         assert_eq!(&hash, piece_hash);
         all.extend_from_slice(&piece_v);

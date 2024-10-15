@@ -1,8 +1,6 @@
-use bytes::BufMut;
+use crate::calc_target_chunk_length;
 
-use crate::{calc_target_chunk_length, my_impl::MyConnect, Torrent};
-
-use super::MyTorrent;
+use super::{MyRequestPayload, MyTorrent};
 const BLOCK_SIZE_MAX: usize = 1 << 14;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -60,7 +58,6 @@ impl MyPeerMsg {
         }
     }
     pub fn request(index: u32, begin: u32, length: u32) -> Self {
-
         let request = MyRequestPayload::new(index, begin, length);
         Self {
             tag: MyPeerMsgTag::Request,
@@ -70,7 +67,6 @@ impl MyPeerMsg {
     pub fn request_iter(piece_i: usize, b: &MyTorrent) -> impl Iterator<Item = Self> {
         let info = &b.info;
         let length = b.single_length().unwrap();
-        let target = info.pieces.0.get(piece_i);
         let piece_size =
             calc_target_chunk_length(length, info.piece_length, info.pieces.0.len(), piece_i);
 
@@ -81,77 +77,13 @@ impl MyPeerMsg {
         let m = it.map(move |block_i| {
             let block_size = calc_target_chunk_length(piece_size, BLOCK_SIZE_MAX, block_n, block_i);
 
-            return MyPeerMsg::request(
+            return Self::request(
                 piece_i as u32,
                 (block_i * BLOCK_SIZE_MAX) as u32,
                 block_size as u32,
             );
         });
+
         m
     }
-}
-#[derive(Debug)]
-#[repr(C)]
-pub struct MyRequestPayload {
-    pub index: [u8; 4],
-    pub begin: [u8; 4],
-    pub length: [u8; 4],
-}
-impl MyRequestPayload {
-    pub fn new(index: u32, begin: u32, length: u32) -> Self {
-        let index = index.to_be_bytes();
-        let begin = begin.to_be_bytes();
-        let length = length.to_be_bytes();
-        let ins = Self {
-            index,
-            begin,
-            length,
-        };
-
-        println!("request {:?}", ins);
-        ins
-    }
-    pub fn to_bytes(&self) -> &[u8] {
-        let a = self as *const Self as *const [u8; std::mem::size_of::<Self>()];
-        let a = unsafe { &*a };
-        a
-    }
-    pub fn ref_from_bytes(data: &[u8]) -> Option<&Self> {
-        if data.len() < std::mem::size_of::<Self>() {
-            return None;
-        }
-        let a = data as *const [u8] as *const Self;
-        let a = unsafe { &*a };
-        return Some(a);
-    }
-}
-#[derive(Debug)]
-#[repr(C)]
-pub struct MyPiecePayload<T: ?Sized = [u8]> {
-   pub index: [u8; 4],
-   pub begin: [u8; 4],
-   pub block: T,
-}
-impl MyPiecePayload {
-    pub fn to_bytes(&self) -> Vec<u8> {
-        let a = self as *const Self as *const [u8; Self::PIECE_SIZE];
-        let a = unsafe { &*a };
-        let v: Vec<_> = a.iter().chain(self.block.iter()).cloned().collect();
-        v
-    }
-    const PIECE_SIZE: usize = std::mem::size_of::<MyPiecePayload<()>>();
-    pub fn ref_from_bytes(data: &[u8]) -> Option<&Self> {
-
-        if data.len() < Self::PIECE_SIZE {
-            return None;
-        }
-        let correct_len = data.len() - Self::PIECE_SIZE;
-        let fat_pointer_with_correct_len = &data[..correct_len] as *const [u8] as *const Self;
-        let a = unsafe { &*fat_pointer_with_correct_len };
-        return Some(a);
-    }
-}
-#[tokio::test]
-async fn test() {
-
 }
