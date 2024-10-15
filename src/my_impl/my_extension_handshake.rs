@@ -17,6 +17,9 @@ impl MyExtHandshakePayload {
         };
         m
     }
+    pub fn ut_metadata(&self) -> usize {
+        *self.dic.m.get("ut_metadata").expect("get ut_metadata")
+    }
     pub fn default() -> Self {
         let mut dic: HashMap<String, usize> = HashMap::new();
         dic.insert("ut_metadata".into(), 2);

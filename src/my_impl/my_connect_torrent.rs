@@ -6,7 +6,7 @@ use tokio::{fs, io::AsyncWriteExt, net::TcpStream};
 use tokio_util::codec::Framed;
 
 use crate::{
-    my_impl::{MyPeerMsgTag, MyPiecePayload},
+    my_impl::{MyExtHandshakePayload, MyPeerMsgTag, MyPiecePayload},
     sha1_u8_20,
 };
 
@@ -32,6 +32,16 @@ impl MyConnect {
                 .send(MyPeerMsg::ext_handshake())
                 .await
                 .context("peer send")?;
+
+            let msg = peer_framed
+                .next()
+                .await
+                .expect("peer next")
+                .context("peer next")?;
+            assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
+            let msg = MyExtHandshakePayload::from_bytes(&msg.payload).expect("parse ext payload");
+            println!("exe msg {:?}",msg);
+            println!("")
         } else {
             peer_framed
                 .send(MyPeerMsg::interested())
