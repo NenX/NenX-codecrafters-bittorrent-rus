@@ -81,7 +81,7 @@ impl MyConnect {
         *item = 16;
 
         let mut hs_data = MyHandShakeData::new(info_hash, *b"00112233445566778899", reserved);
-
+        println!("hs_data {:?}",hs_data);
         let ins = unsafe {
             Self::new(&peer)
                 .await
