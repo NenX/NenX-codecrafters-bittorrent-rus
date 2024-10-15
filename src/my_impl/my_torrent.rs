@@ -145,9 +145,3 @@ pub struct MyTorrentInfoFiles {
     pub length: usize,
     pub path: Vec<String>,
 }
-
-#[test]
-fn torrent_test() {
-    let t = MyTorrent::from_file("sample.torrent");
-    println!("{:?}", t)
-}

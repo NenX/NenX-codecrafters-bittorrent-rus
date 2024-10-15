@@ -1,0 +1,127 @@
+use std::{net::SocketAddrV4, path::Path};
+
+use anyhow::{Context, Result};
+use futures_util::{SinkExt, StreamExt};
+use tokio::{
+    fs,
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::TcpStream,
+};
+use tokio_util::codec::Framed;
+
+use crate::{
+    my_impl::{MyHandShakeData, MyPeerMsgTag, MyPiecePayload},
+    sha1_u8_20,
+};
+
+use super::{MyConnect, MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
+
+impl MyConnect {
+ 
+ 
+    pub async fn pre_download<'a>(
+        socket: &'a mut TcpStream,
+        // peer_framed: &mut Framed<&mut TcpStream, MyPeerMsgFramed>,
+    ) -> Result<Framed<&'a mut TcpStream, MyPeerMsgFramed>> {
+        let mut peer_framed = Framed::new(socket, MyPeerMsgFramed);
+
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Bitfield);
+
+        peer_framed
+            .send(MyPeerMsg::interested())
+            .await
+            .context("peer send")?;
+
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
+        Ok(peer_framed)
+    }
+    pub async fn connect(torrent: &MyTorrent) -> Result<MyConnect> {
+        println!("downloadpiece_task");
+        let peers = torrent.fetch_peers().await?;
+        let first_one = &peers.0.first().unwrap().to_string();
+        let c = Self::handshake(torrent, first_one).await?;
+
+        Ok(c)
+    }
+    pub async fn downlaod_piece_at<T: AsRef<Path>>(
+        torrent: &MyTorrent,
+        output: T,
+        piece_i: usize,
+    ) -> Result<()> {
+        println!("download piece {:?}", torrent);
+
+        let mut c = Self::connect(torrent).await?;
+        let peer = &mut c.remote_socket;
+
+        let mut all: Vec<u8> = vec![];
+        let mut peer_framed = Self::pre_download(peer).await?;
+
+        Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
+
+        fs::write(output, all).await.context("write all")?;
+        Ok(())
+    }
+    pub async fn downlaod_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
+        println!("download {:?}", torrent);
+        let mut c = Self::connect(torrent).await?;
+        let peer = &mut c.remote_socket;
+
+        let mut all: Vec<u8> = vec![];
+        let mut peer_framed = Self::pre_download(peer).await?;
+
+        for (piece_i, _) in torrent.info.pieces.0.iter().enumerate() {
+            Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
+        }
+
+        fs::write(output, all).await.context("write all")?;
+        Ok(())
+    }
+    pub async fn downlaod_piece_impl(
+        torrent: &MyTorrent,
+        piece_i: usize,
+        all: &mut Vec<u8>,
+        peer_framed: &mut Framed<&mut TcpStream, MyPeerMsgFramed>,
+    ) -> Result<()> {
+        let mut piece_v = vec![];
+        let piece_hash = torrent.info.pieces.0.get(piece_i).unwrap();
+
+        let reqs = MyPeerMsg::request_iter(piece_i, torrent);
+        for m in reqs {
+            // let m = MyPeerMsg::request(index, begin, length);
+
+            peer_framed.send(m).await.context("send")?;
+
+            let msg = peer_framed
+                .next()
+                .await
+                .expect("req peer next")
+                .context("peer next")?;
+
+            assert_eq!(msg.tag, MyPeerMsgTag::Piece);
+            assert!(!msg.payload.is_empty());
+            let payload = MyPiecePayload::ref_from_bytes(&msg.payload).expect("piece payload");
+
+            piece_v.extend_from_slice(&payload.block);
+        }
+
+        println!("request piece --> len {}", piece_v.len());
+        let hash = sha1_u8_20(&piece_v);
+        assert_eq!(&hash, piece_hash);
+        all.extend_from_slice(&piece_v);
+
+        Ok(())
+    }
+}
+
+#[tokio::test]
+async fn test() {}

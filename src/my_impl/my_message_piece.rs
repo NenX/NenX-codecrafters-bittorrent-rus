@@ -1,5 +1,4 @@
 
-const BLOCK_SIZE_MAX: usize = 1 << 14;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -26,5 +25,3 @@ impl MyPiecePayload {
         Some(a)
     }
 }
-#[tokio::test]
-async fn test() {}
