@@ -77,7 +77,7 @@ impl MyConnect {
     pub async fn connect(torrent: &MyTorrent) -> Result<MyConnect> {
         println!("downloadpiece_task");
         let peers = torrent.fetch_peers().await?;
-        let first_one = &peers.0.first().unwrap().to_string();
+        let first_one = &peers.0.last().unwrap().to_string();
         let c = Self::handshake(torrent, first_one).await?;
 
         Ok(c)

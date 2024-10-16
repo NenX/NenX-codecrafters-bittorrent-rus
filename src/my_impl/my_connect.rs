@@ -43,7 +43,7 @@ impl MyConnect {
     }
     pub async fn magnet_handshake(mag: &MyMagnet) -> Result<Self> {
         let peer = mag.fetch_peers().await?;
-        let peer = peer.0.first().unwrap().to_string();
+        let peer = peer.0.last().unwrap().to_string();
         let info_hash = mag.info_hash()?;
         let mut ins = Self::new(&peer).await;
 
