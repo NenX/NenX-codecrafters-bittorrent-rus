@@ -152,16 +152,13 @@ impl MyConnect {
         let mut conn = Self::magnet_handshake(mag).await?;
 
         let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
-        println!("qqq 0");
 
         let meta =
             Self::magnet_extension_handshake(&mut peer_framed, payload.ut_metadata()).await?;
         mag.print();
-        println!("qqq 1");
         let mut all: Vec<u8> = vec![];
 
         Self::downlaod_piece_impl(piece_i, &meta.info.unwrap(), &mut all, &mut peer_framed).await?;
-        println!("qqq 2");
 
         fs::write(output, all).await.context("write all")?;
 
@@ -178,16 +175,20 @@ impl MyConnect {
         let piece_hash = info.pieces.0.get(piece_i).unwrap();
 
         let reqs = MyPeerMsg::request_iter(piece_i, info);
+
         for m in reqs {
             // let m = MyPeerMsg::request(index, begin, length);
+            println!("xxx 0");
 
             peer_framed.send(m).await.context("send")?;
+            println!("xxx 1");
 
             let msg = peer_framed
                 .next()
                 .await
                 .expect("req peer next")
                 .context("peer next")?;
+            println!("xxx 2");
 
             assert_eq!(msg.tag, MyPeerMsgTag::Piece);
             assert!(!msg.payload.is_empty());
