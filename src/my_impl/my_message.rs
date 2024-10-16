@@ -77,10 +77,12 @@ impl MyPeerMsg {
     }
     pub fn request(index: u32, begin: u32, length: u32) -> Self {
         let request = MyRequestPayload::new(index, begin, length);
-        Self {
+        let a = Self {
             tag: MyPeerMsgTag::Request,
             payload: request.to_bytes().to_vec(),
-        }
+        };
+        println!("request ============> {:?}",request);
+        a
     }
     pub fn request_iter(piece_i: usize, info: &MyTorrentInfo) -> impl Iterator<Item = Self> {
         let length = info.single_length().unwrap();
