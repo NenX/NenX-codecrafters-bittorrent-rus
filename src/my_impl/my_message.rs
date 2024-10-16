@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use crate::{calc_target_chunk_length, my_impl::MyExtMetaDataPayload};
 
-use super::{MyExtHandshakePayload, MyRequestPayload, MyTorrent};
+use super::{MyExtHandshakePayload, MyRequestPayload, MyTorrent, MyTorrentInfo};
 const BLOCK_SIZE_MAX: usize = 1 << 14;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -82,9 +82,9 @@ impl MyPeerMsg {
             payload: request.to_bytes().to_vec(),
         }
     }
-    pub fn request_iter(piece_i: usize, b: &MyTorrent) -> impl Iterator<Item = Self> {
-        let info = &b.info;
-        let length = b.single_length().unwrap();
+    pub fn request_iter(piece_i: usize, info: &MyTorrentInfo) -> impl Iterator<Item = Self> {
+        let length = info.single_length().unwrap();
+
         let piece_size =
             calc_target_chunk_length(length, info.piece_length, info.pieces.0.len(), piece_i);
 

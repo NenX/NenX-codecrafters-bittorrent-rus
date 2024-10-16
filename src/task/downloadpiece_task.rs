@@ -27,8 +27,7 @@ pub async fn magnet_downloadpiece_task<T: AsRef<Path>>(
     output: T,
     piece: usize,
 ) -> Result<()> {
-    let mag = MyMagnet::from_link(link)?;
-    let _ins = MyConnect::magnet_info(&mag).await?;
+    MyConnect::magnet_downlaod_piece_at(&MyMagnet::from_link(link).unwrap(), output, piece).await?;
 
     Ok(())
 }

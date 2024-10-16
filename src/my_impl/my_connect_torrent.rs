@@ -10,7 +10,7 @@ use crate::{
     sha1_u8_20,
 };
 
-use super::{MyConnect, MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent};
+use super::{MyConnect, MyMagnet, MyPeerMsg, MyPeerMsgFramed, MyTorrent, MyTorrentInfo};
 
 impl MyConnect {
     pub async fn pre_download(&mut self) -> Result<Framed<&mut TcpStream, MyPeerMsgFramed>> {
@@ -71,7 +71,6 @@ impl MyConnect {
         let msg = MyExtHandshakePayload::from_bytes(&msg.payload).expect("parse ext payload");
         println!("Peer Metadata Extension ID: {}", msg.ut_metadata());
 
-
         Ok((peer_framed, msg))
     }
 
@@ -92,11 +91,11 @@ impl MyConnect {
         println!("download piece {:?}", torrent);
 
         let mut conn = Self::connect(torrent).await?;
-
-        let mut all: Vec<u8> = vec![];
         let mut peer_framed = conn.pre_download().await?;
 
-        Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
+        let mut all: Vec<u8> = vec![];
+
+        Self::downlaod_piece_impl(piece_i, &torrent.info, &mut all, &mut peer_framed).await?;
 
         fs::write(output, all).await.context("write all")?;
         Ok(())
@@ -104,55 +103,79 @@ impl MyConnect {
     pub async fn downlaod_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
         println!("download {:?}", torrent);
         let mut conn = Self::connect(torrent).await?;
-
-        let mut all: Vec<u8> = vec![];
         let mut peer_framed = conn.pre_download().await?;
+        let mut all: Vec<u8> = vec![];
 
         for (piece_i, _) in torrent.info.pieces.0.iter().enumerate() {
-            Self::downlaod_piece_impl(torrent, piece_i, &mut all, &mut peer_framed).await?;
+            Self::downlaod_piece_impl(piece_i, &torrent.info, &mut all, &mut peer_framed).await?;
         }
 
         fs::write(output, all).await.context("write all")?;
         Ok(())
     }
-    pub async fn magnet_info(mag: &MyMagnet) -> Result<()> {
-        let mut conn = Self::magnet_handshake(mag).await?;
-
-        let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
-        println!("magnet_info 00");
+    pub async fn magnet_extension_handshake(
+        peer_framed: &mut Framed<&mut TcpStream, MyPeerMsgFramed>,
+        ut_metadata: u8,
+    ) -> Result<MyExtMetaDataPayload> {
         peer_framed
-            .send(MyPeerMsg::ext_meta_request(payload.ut_metadata(), 0, 0))
+            .send(MyPeerMsg::ext_meta_request(ut_metadata, 0, 0))
             .await
             .context("peer send")?;
-        println!("magnet_info 11");
 
         let msg = peer_framed
             .next()
             .await
             .expect("peer next")
             .context("peer next")?;
-        println!("magnet_info 22");
-
         assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
 
         let a = MyExtMetaDataPayload::from_bytes(&msg.payload).expect("parse magnet info");
-        mag.print();
-        println!("magnet_info 33");
 
-        a.info.expect("info").print();
+        a.info.clone().expect("info").print();
+        Ok(a)
+    }
+    pub async fn magnet_info(mag: &MyMagnet) -> Result<()> {
+        let mut conn = Self::magnet_handshake(mag).await?;
+
+        let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
+
+        Self::magnet_extension_handshake(&mut peer_framed, payload.ut_metadata()).await?;
+        mag.print();
+
         Ok(())
     }
-    
-    pub async fn downlaod_piece_impl(
-        torrent: &MyTorrent,
+    pub async fn magnet_downlaod_piece_at(
+        mag: &MyMagnet,
+        output: impl AsRef<Path>,
         piece_i: usize,
+    ) -> Result<()> {
+        let mut conn = Self::magnet_handshake(mag).await?;
+
+        let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
+
+        let meta =
+            Self::magnet_extension_handshake(&mut peer_framed, payload.ut_metadata()).await?;
+        mag.print();
+
+        let mut all: Vec<u8> = vec![];
+
+        Self::downlaod_piece_impl(piece_i, &meta.info.unwrap(), &mut all, &mut peer_framed).await?;
+
+        fs::write(output, all).await.context("write all")?;
+
+        Ok(())
+    }
+
+    pub async fn downlaod_piece_impl(
+        piece_i: usize,
+        info: &MyTorrentInfo,
         all: &mut Vec<u8>,
         peer_framed: &mut Framed<&mut TcpStream, MyPeerMsgFramed>,
     ) -> Result<()> {
         let mut piece_v = vec![];
-        let piece_hash = torrent.info.pieces.0.get(piece_i).unwrap();
+        let piece_hash = info.pieces.0.get(piece_i).unwrap();
 
-        let reqs = MyPeerMsg::request_iter(piece_i, torrent);
+        let reqs = MyPeerMsg::request_iter(piece_i, info);
         for m in reqs {
             // let m = MyPeerMsg::request(index, begin, length);
 

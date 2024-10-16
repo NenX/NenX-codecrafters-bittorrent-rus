@@ -29,9 +29,14 @@ pub struct MyTorrentInfo {
     pub pieces: MyTorrentPieces,
 }
 impl MyTorrentInfo {
-    pub fn print(&self) {
-        
+    pub fn single_length(&self) -> Option<usize> {
+        match &self.keys {
+            MyTorrentInfoKeys::SingleFile { length } => Some(*length),
+            MyTorrentInfoKeys::MultiFile { files } => None,
+        }
+    }
 
+    pub fn print(&self) {
         match &self.keys {
             crate::my_impl::MyTorrentInfoKeys::SingleFile { length } => {
                 println!("Length: {:?}", length)
@@ -145,12 +150,7 @@ impl MyTorrent {
         let b = fs::read(file).expect("read file");
         serde_bencode::from_bytes(&b).context("context").expect("?")
     }
-    pub fn single_length(&self) -> Option<usize> {
-        match &self.info.keys {
-            MyTorrentInfoKeys::SingleFile { length } => Some(*length),
-            MyTorrentInfoKeys::MultiFile { files } => None,
-        }
-    }
+
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
