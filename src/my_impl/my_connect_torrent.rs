@@ -201,17 +201,14 @@ impl MyConnect {
 
         for m in reqs {
             // let m = MyPeerMsg::request(index, begin, length);
-            println!("xxx 0");
 
             peer_framed.send(m).await.context("send")?;
-            println!("xxx 1");
 
             let msg = peer_framed
                 .next()
                 .await
                 .expect("req peer next")
                 .context("peer next")?;
-            println!("xxx 2");
 
             assert_eq!(msg.tag, MyPeerMsgTag::Piece);
             assert!(!msg.payload.is_empty());
