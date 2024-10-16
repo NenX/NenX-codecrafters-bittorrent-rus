@@ -124,7 +124,7 @@ impl MyTorrent {
 
         let request_params = MyTrackerRequest {
             // pubinfo_hash: hx,
-            peer_id: String::from("00112233445566778899"),
+            peer_id: String::from("71112233445566778899"),
             port: 6881,
             uploaded: 0,
             downloaded: 0,
