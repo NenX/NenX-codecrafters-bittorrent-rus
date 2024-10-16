@@ -22,7 +22,7 @@ pub async fn download_task<T: AsRef<Path>>(torrent: T, output: T) -> MyTorrentRe
     MyConnect::downlaod_all(&torrent, output).await
 }
 
-pub async fn magnet_downloadpiece_task<T: AsRef<Path>>(
+pub async fn magnet_download_piece_task<T: AsRef<Path>>(
     link: &str,
     output: T,
     piece: usize,
