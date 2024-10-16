@@ -81,7 +81,6 @@ impl MyPeerMsg {
             tag: MyPeerMsgTag::Request,
             payload: request.to_bytes().to_vec(),
         };
-        println!("request ============> {:?}",request);
         a
     }
     pub fn request_iter(piece_i: usize, info: &MyTorrentInfo) -> impl Iterator<Item = Self> {

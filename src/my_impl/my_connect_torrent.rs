@@ -88,7 +88,8 @@ impl MyConnect {
         output: T,
         piece_i: usize,
     ) -> Result<()> {
-        println!("download piece {:?}", torrent);
+        println!("downlaod_piece start ==>");
+
 
         let mut conn = Self::connect(torrent).await?;
         let mut peer_framed = conn.pre_download().await?;
@@ -98,10 +99,13 @@ impl MyConnect {
         Self::downlaod_piece_impl(piece_i, &torrent.info, &mut all, &mut peer_framed).await?;
 
         fs::write(output, all).await.context("write all")?;
+        println!("downlaod_piece end <==");
+
         Ok(())
     }
     pub async fn downlaod_all<T: AsRef<Path>>(torrent: &MyTorrent, output: T) -> Result<()> {
-        println!("download {:?}", torrent);
+        println!("downlaod_all start ==>");
+
         let mut conn = Self::connect(torrent).await?;
         let mut peer_framed = conn.pre_download().await?;
         let mut all: Vec<u8> = vec![];
@@ -111,6 +115,8 @@ impl MyConnect {
         }
 
         fs::write(output, all).await.context("write all")?;
+        println!("downlaod_all end <==");
+
         Ok(())
     }
     pub async fn magnet_extension_handshake(
@@ -149,6 +155,8 @@ impl MyConnect {
         output: impl AsRef<Path>,
         piece_i: usize,
     ) -> Result<()> {
+        println!("megnet piece start ==>");
+
         let mut conn = Self::magnet_handshake(mag).await?;
 
         let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
@@ -175,7 +183,8 @@ impl MyConnect {
         Self::downlaod_piece_impl(piece_i, &meta.info.unwrap(), &mut all, &mut peer_framed).await?;
 
         fs::write(output, all).await.context("write all")?;
-        println!("magnet_downlaod_piece_at ok!!");
+        println!("megnet piece end <==");
+
         Ok(())
     }
 
