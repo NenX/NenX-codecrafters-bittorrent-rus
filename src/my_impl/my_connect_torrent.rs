@@ -217,7 +217,6 @@ impl MyConnect {
             piece_v.extend_from_slice(&payload.block);
         }
 
-        println!("request piece --> len {}", piece_v.len());
         let hash = sha1_u8_20(&piece_v);
         assert_eq!(&hash, piece_hash);
         all.extend_from_slice(&piece_v);
