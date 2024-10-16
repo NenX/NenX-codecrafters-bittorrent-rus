@@ -31,6 +31,11 @@ pub async fn magnet_download_piece_task<T: AsRef<Path>>(
 
     Ok(())
 }
+pub async fn magnet_download_task<T: AsRef<Path>>(link: &str, output: T) -> Result<()> {
+    MyConnect::magnet_downlaod(&MyMagnet::from_link(link).unwrap(), output).await?;
+
+    Ok(())
+}
 
 #[tokio::test]
 async fn f() {

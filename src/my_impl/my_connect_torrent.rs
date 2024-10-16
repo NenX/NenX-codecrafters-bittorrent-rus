@@ -90,7 +90,6 @@ impl MyConnect {
     ) -> Result<()> {
         println!("downlaod_piece start ==>");
 
-
         let mut conn = Self::connect(torrent).await?;
         let mut peer_framed = conn.pre_download().await?;
 
@@ -161,6 +160,36 @@ impl MyConnect {
 
         let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
 
+        peer_framed
+            .send(MyPeerMsg::interested())
+            .await
+            .context("peer send")?;
+
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
+
+        let meta =
+            Self::magnet_extension_handshake(&mut peer_framed, payload.ut_metadata()).await?;
+        mag.print();
+        let mut all: Vec<u8> = vec![];
+
+        Self::downlaod_piece_impl(piece_i, &meta.info.unwrap(), &mut all, &mut peer_framed).await?;
+
+        fs::write(output, all).await.context("write all")?;
+        println!("megnet piece end <==");
+
+        Ok(())
+    }
+    pub async fn magnet_downlaod(mag: &MyMagnet, output: impl AsRef<Path>) -> Result<()> {
+        println!("magnet_downlaod start ==>");
+
+        let mut conn = Self::magnet_handshake(mag).await?;
+
+        let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
 
         peer_framed
             .send(MyPeerMsg::interested())
@@ -174,16 +203,17 @@ impl MyConnect {
             .context("peer next")?;
         assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
 
-
         let meta =
             Self::magnet_extension_handshake(&mut peer_framed, payload.ut_metadata()).await?;
         mag.print();
         let mut all: Vec<u8> = vec![];
-
-        Self::downlaod_piece_impl(piece_i, &meta.info.unwrap(), &mut all, &mut peer_framed).await?;
+        let info = &meta.info.unwrap();
+        for (piece_i, _) in info.pieces.0.iter().enumerate() {
+            Self::downlaod_piece_impl(piece_i, info, &mut all, &mut peer_framed).await?;
+        }
 
         fs::write(output, all).await.context("write all")?;
-        println!("megnet piece end <==");
+        println!(" end <==");
 
         Ok(())
     }

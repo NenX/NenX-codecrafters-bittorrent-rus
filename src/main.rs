@@ -1,8 +1,8 @@
 use bittorrent_starter_rust::{
     commands::{Args, Command},
     decode_task, download_task, downloadpiece_task, handshake_task, info_task,
-    magnet_download_piece_task, magnet_handshake_task, magnet_parse_info, magnet_parse_task,
-    peers_task,
+    magnet_download_piece_task, magnet_download_task, magnet_handshake_task, magnet_parse_info,
+    magnet_parse_task, peers_task,
 };
 use clap::Parser;
 
@@ -36,6 +36,7 @@ async fn main() -> anyhow::Result<()> {
             link,
             piece,
         } => magnet_download_piece_task(&link, output, piece).await?,
+        Command::MagnetDownload { output, link } => magnet_download_task(&link, output).await?,
         Command::Download { output, torrent } => download_task(torrent, output).await?,
         Command::MagnetParse { link } => magnet_parse_task(&link)?,
         Command::MagnetInfo { link } => {

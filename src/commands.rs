@@ -39,6 +39,11 @@ pub enum Command {
         link: String,
         piece: usize,
     },
+    MagnetDownload {
+        #[arg(short)]
+        output: PathBuf,
+        link: String,
+    },
     MagnetHandshake {
         link: String,
     },
