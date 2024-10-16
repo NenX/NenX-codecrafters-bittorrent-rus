@@ -175,7 +175,7 @@ impl MyConnect {
         Self::downlaod_piece_impl(piece_i, &meta.info.unwrap(), &mut all, &mut peer_framed).await?;
 
         fs::write(output, all).await.context("write all")?;
-
+        println!("magnet_downlaod_piece_at ok!!");
         Ok(())
     }
 
