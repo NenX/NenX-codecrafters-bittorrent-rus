@@ -47,7 +47,7 @@ impl MyConnect {
         let info_hash = mag.info_hash()?;
         let mut ins = Self::new(&peer).await;
 
-        let mut hs_data = MyHandShakeData::new(info_hash, *b"49756936445566778899");
+        let mut hs_data = MyHandShakeData::new(info_hash, *b"49756936445566817161");
         hs_data.set_ext_reserved_bit();
         unsafe { ins.handshake_interact(&mut hs_data).await.unwrap() };
         println!("Peer ID: {}", hex::encode(hs_data.peer_id));
