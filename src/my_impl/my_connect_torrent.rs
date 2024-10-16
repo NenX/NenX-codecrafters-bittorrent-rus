@@ -119,21 +119,26 @@ impl MyConnect {
         let mut conn = Self::magnet_handshake(mag).await?;
 
         let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
-
+        println!("magnet_info 00");
         peer_framed
             .send(MyPeerMsg::ext_meta_request(payload.ut_metadata(), 0, 0))
             .await
             .context("peer send")?;
+        println!("magnet_info 11");
 
         let msg = peer_framed
             .next()
             .await
             .expect("peer next")
             .context("peer next")?;
+        println!("magnet_info 22");
+
         assert_eq!(msg.tag, MyPeerMsgTag::Extendsion);
 
         let a = MyExtMetaDataPayload::from_bytes(&msg.payload).expect("parse magnet info");
         mag.print();
+        println!("magnet_info 33");
+
         a.info.expect("info").print();
         Ok(())
     }
