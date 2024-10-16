@@ -153,6 +153,20 @@ impl MyConnect {
 
         let (mut peer_framed, payload) = conn.magnet_pre_download().await?;
 
+
+        peer_framed
+            .send(MyPeerMsg::interested())
+            .await
+            .context("peer send")?;
+
+        let msg = peer_framed
+            .next()
+            .await
+            .expect("peer next")
+            .context("peer next")?;
+        assert_eq!(msg.tag, MyPeerMsgTag::Unchoke);
+
+
         let meta =
             Self::magnet_extension_handshake(&mut peer_framed, payload.ut_metadata()).await?;
         mag.print();
